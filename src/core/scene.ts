@@ -8,6 +8,7 @@ import {
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { WrapTypeOptions, CharPosition } from './types'
+import { isAnimatedShape, getCharPositionsAt } from './geometry'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,26 @@ export function createWrapScene(
 
 	buildObjects(charPositions)
 
+	/**
+	 * Update existing CSS3DObject positions and rotations in place — no DOM writes.
+	 * Falls back to a full rebuild only if the character count changes.
+	 */
+	function updateObjects(positions: CharPosition[]) {
+		if (positions.length !== objects.length) {
+			buildObjects(positions)
+			return
+		}
+		for (let i = 0; i < positions.length; i++) {
+			const cp  = positions[i]
+			const obj = objects[i]
+			const [px, py, pz] = cp.position
+			obj.position.set(px, py, pz)
+			obj.quaternion.setFromRotationMatrix(
+				orientationMatrix(cp.right, cp.up, cp.normal),
+			)
+		}
+	}
+
 	// ── Orbit controls ─────────────────────────────────────────────────────────
 	// OrbitControls need a DOM element for pointer events — use a transparent
 	// overlay so the renderer's domElement can keep pointer-events:none (text).
@@ -146,9 +167,11 @@ export function createWrapScene(
 	}
 
 	// ── Render loop — dirty flag + pause when off-screen ──────────────────────
-	let rafId     = 0
-	let visible   = true
-	let needRender = true   // render at least one frame on mount
+	const animated  = isAnimatedShape(opts.shape)
+	const startTime = performance.now()
+	let rafId       = 0
+	let visible     = true
+	let needRender  = true   // render at least one frame on mount
 
 	// Mark dirty whenever the camera moves (damping, drag, autoRotate, etc.)
 	controls?.addEventListener('change', () => { needRender = true })
@@ -156,6 +179,13 @@ export function createWrapScene(
 	function animate() {
 		rafId = requestAnimationFrame(animate)
 		if (!visible) return
+
+		// For animated shapes, recompute positions each frame (no DOM writes)
+		if (animated) {
+			const t = (performance.now() - startTime) / 1000
+			updateObjects(getCharPositionsAt(opts, t))
+			needRender = true
+		}
 
 		// controls.update() returns true when the camera changed (damping / autoRotate)
 		const moved = controls?.update() ?? false

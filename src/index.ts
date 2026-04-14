@@ -13,7 +13,7 @@ export type {
 export { WRAP_TYPE_CLASS } from './core/types'
 
 // Core functions
-export { getCharPositions } from './core/geometry'
+export { getCharPositions, getCharPositionsAt, isAnimatedShape } from './core/geometry'
 export { createWrapScene }  from './core/scene'
 export type { SceneHandle } from './core/scene'
 

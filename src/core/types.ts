@@ -1,7 +1,7 @@
 // wrapType/src/core/types.ts — all types, interfaces, and constants
 
 /** Built-in 3D shapes */
-export type WrapTypeShape = 'sphere' | 'cylinder' | 'torus' | 'plane' | 'stool'
+export type WrapTypeShape = 'sphere' | 'cylinder' | 'torus' | 'plane' | 'stool' | 'flag'
 
 /** Text placement strategy */
 export type WrapTypeMode = 'surface' | 'silhouette'

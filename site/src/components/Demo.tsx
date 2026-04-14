@@ -6,11 +6,12 @@ import { WrapTypeScene } from "@liiift-studio/wraptype"
 import type { WrapTypeShape, WrapTypeFill } from "@liiift-studio/wraptype"
 
 const DEFAULT_TEXT  = "wraptype "
-const DEFAULT_SHAPE = "stool"  as WrapTypeShape
-const DEFAULT_FILL  = "flow"   as WrapTypeFill
+const DEFAULT_SHAPE = "flag"   as WrapTypeShape
+const DEFAULT_FILL  = "cover"  as WrapTypeFill
 const DEFAULT_SIZE  = 18
 
 const SHAPES: { value: WrapTypeShape; label: string }[] = [
+	{ value: "flag",     label: "Flag"     },
 	{ value: "stool",    label: "Stool"    },
 	{ value: "sphere",   label: "Sphere"   },
 	{ value: "cylinder", label: "Cylinder" },
@@ -143,8 +144,9 @@ export default function Demo() {
 			</div>
 
 			<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
-				Drag to orbit. Scroll to zoom. Text stays as real DOM — variable fonts,
-				CSS animations, and other Liiift tools all compose onto the surface.
+				Drag to orbit. Scroll to zoom. The flag animates in real time — character
+				positions recalculate each frame with no DOM writes. Text stays as real DOM,
+				so variable fonts and CSS effects compose naturally.
 			</p>
 		</div>
 	)

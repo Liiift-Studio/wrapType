@@ -1,7 +1,7 @@
 // wrapType/src/__tests__/geometry.test.ts — unit tests for geometry computation
 
 import { describe, it, expect } from 'vitest'
-import { getCharPositions } from '../core/geometry'
+import { getCharPositions, getCharPositionsAt } from '../core/geometry'
 import type { WrapTypeOptions } from '../core/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -247,6 +247,65 @@ describe('stool cover', () => {
 			expect(len(cp.normal)).toBeCloseTo(1, 4)
 		}
 	})
+})
+
+// ─── Flag — cover ─────────────────────────────────────────────────────────────
+
+describe('flag cover (t = 0)', () => {
+	const positions = getCharPositionsAt({ ...BASE, shape: 'flag', fill: 'cover' }, 0)
+
+	it('returns many positions (rows × cols grid)', () => {
+		expect(positions.length).toBeGreaterThan(BASE.text.length * 3)
+	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 4)
+		}
+	})
+
+	it('all normals face toward +Z at t=0 (flag is angled toward viewer)', () => {
+		for (const cp of positions) {
+			expect(cp.normal[2]).toBeGreaterThan(0)
+		}
+	})
+
+	it('mast column (u=0) has z ≈ 0 (no wave at mast)', () => {
+		// First character in each row is the mast edge
+		expect(positions[0].position[2]).toBeCloseTo(0, 3)
+	})
+})
+
+describe('flag cover — animation (t = 1)', () => {
+	const p0 = getCharPositionsAt({ ...BASE, shape: 'flag', fill: 'cover' }, 0)
+	const p1 = getCharPositionsAt({ ...BASE, shape: 'flag', fill: 'cover' }, 1)
+
+	it('returns same character count at different times', () => {
+		expect(p0.length).toBe(p1.length)
+	})
+
+	it('free-edge positions differ between t=0 and t=1', () => {
+		// Last character in first row is the free edge — it should have moved
+		const last = p0.length - 1
+		const zDiff = Math.abs(p0[last].position[2] - p1[last].position[2])
+		expect(zDiff).toBeGreaterThan(0)
+	})
+
+	it('mast-edge positions do not move (wave is zero at u=0)', () => {
+		// First character in first row is always at the mast (z=0)
+		expect(p0[0].position[2]).toBeCloseTo(0, 3)
+		expect(p1[0].position[2]).toBeCloseTo(0, 3)
+	})
+})
+
+// ─── isAnimatedShape ──────────────────────────────────────────────────────────
+
+import { isAnimatedShape } from '../core/geometry'
+
+describe('isAnimatedShape', () => {
+	it('returns true for flag', () => { expect(isAnimatedShape('flag')).toBe(true) })
+	it('returns false for sphere', () => { expect(isAnimatedShape('sphere')).toBe(false) })
+	it('returns false for undefined', () => { expect(isAnimatedShape(undefined)).toBe(false) })
 })
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────

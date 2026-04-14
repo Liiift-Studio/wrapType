@@ -412,13 +412,121 @@ function stoolCover(text: string, opts: WrapTypeOptions): CharPosition[] {
 	return positions
 }
 
+// ─── Flag ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Compute one world-space point on the waving flag surface.
+ * u ∈ [0,1]: 0 = mast (fixed), 1 = free edge (max displacement)
+ * v ∈ [0,1]: 0 = bottom edge, 1 = top edge
+ * Deformation is purely in Z so text reads naturally on the XY face.
+ */
+function flagPoint(
+	u: number, v: number, t: number,
+	W: number, H: number, amp: number, omega: number, speed: number,
+): [number, number, number] {
+	const phase = u * omega * 2 * Math.PI - t * speed
+	return [
+		(u - 0.5) * W,
+		(v - 0.5) * H,
+		amp * Math.sin(phase) * u,
+	]
+}
+
+/**
+ * Compute a CharPosition on the flag at grid coordinate (u, v, t).
+ * Uses a tiny forward-difference step to derive the tangent and normal analytically.
+ */
+function flagCharAt(
+	char: string,
+	u: number, v: number, t: number,
+	W: number, H: number, amp: number, omega: number, speed: number,
+): CharPosition {
+	const EPS = 1e-4
+	const p   = flagPoint(u, v, t, W, H, amp, omega, speed)
+
+	// Use forward difference normally; backward at the free edge (u = 1)
+	// to avoid clamping that would collapse the tangent to zero.
+	let rawTangent: [number, number, number]
+	if (u <= 1 - EPS) {
+		const pDu = flagPoint(u + EPS, v, t, W, H, amp, omega, speed)
+		rawTangent = [pDu[0] - p[0], pDu[1] - p[1], pDu[2] - p[2]]
+	} else {
+		const pDu = flagPoint(u - EPS, v, t, W, H, amp, omega, speed)
+		rawTangent = [p[0] - pDu[0], p[1] - pDu[1], p[2] - pDu[2]]
+	}
+
+	// Tangent along reading direction (width-wise, +X on flag face)
+	const right = norm(rawTangent)
+
+	// Up is always world +Y — no vertical deformation in this wave model
+	const up: [number, number, number] = [0, 1, 0]
+
+	// Normal = right × up. Points toward viewer (+Z) when flag is flat.
+	let normal = norm(cross(right, up))
+
+	// Guarantee outward facing (toward the +Z camera)
+	if (normal[2] < 0) normal = [-normal[0], -normal[1], -normal[2]]
+
+	return { char, position: p, normal, right, up }
+}
+
+/** Fill the entire flag surface with text (cover mode). */
+function flagCover(text: string, opts: WrapTypeOptions, t: number): CharPosition[] {
+	const W     = (opts.radius ?? 300) * 1.5
+	const H     = opts.radius ?? 300
+	const amp   = H * 0.12
+	const omega = 1.5
+	const speed = 2.5
+	const fs    = opts.fontSize ?? 14
+	const adv   = fs * (opts.charAdvanceRatio ?? 0.62)
+	const lineH = fs * (opts.lineHeightRatio  ?? 1.4)
+	const cols  = Math.max(1, Math.ceil(W / adv))
+	const rows  = Math.max(1, Math.ceil(H / lineH))
+
+	const positions: CharPosition[] = []
+	let idx = 0
+
+	for (let row = 0; row < rows; row++) {
+		const v = rows > 1 ? row / (rows - 1) : 0.5
+		for (let col = 0; col < cols; col++) {
+			const u = cols > 1 ? col / (cols - 1) : 0.5
+			positions.push(flagCharAt(text[idx++ % text.length], u, v, t, W, H, amp, omega, speed))
+		}
+	}
+	return positions
+}
+
+/** Place a single row of text along the centre of the flag (flow mode). */
+function flagFlow(text: string, opts: WrapTypeOptions, t: number): CharPosition[] {
+	const W     = (opts.radius ?? 300) * 1.5
+	const H     = opts.radius ?? 300
+	const amp   = H * 0.12
+	const omega = 1.5
+	const speed = 2.5
+	const fs    = opts.fontSize ?? 14
+	const adv   = fs * (opts.charAdvanceRatio ?? 0.62)
+	const cols  = Math.max(1, Math.ceil(W / adv))
+
+	return Array.from({ length: cols }, (_, col) => {
+		const u = cols > 1 ? col / (cols - 1) : 0.5
+		return flagCharAt(text[col % text.length], u, 0.5, t, W, H, amp, omega, speed)
+	})
+}
+
+// ─── Animation helpers ────────────────────────────────────────────────────────
+
+/** Returns true for shapes whose character positions change over time. */
+export function isAnimatedShape(shape: string | undefined): boolean {
+	return shape === 'flag'
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 /**
  * Compute the full list of character positions and orientations for the given
- * shape + fill combination.
+ * shape + fill combination at an optional animation time `t` (seconds).
  */
-export function getCharPositions(opts: WrapTypeOptions): CharPosition[] {
+export function getCharPositionsAt(opts: WrapTypeOptions, t: number): CharPosition[] {
 	const shape = opts.shape ?? 'sphere'
 	const fill  = opts.fill  ?? 'cover'
 	const text  = opts.text  || 'Type'
@@ -427,7 +535,7 @@ export function getCharPositions(opts: WrapTypeOptions): CharPosition[] {
 		if (fill === 'flow')        return sphereFlow(text, opts)
 		if (fill === 'full-width')  return sphereFullWidth(text, opts)
 		if (fill === 'full-height') return sphereFullHeight(text, opts)
-		return sphereCover(text, opts)  // cover + pattern
+		return sphereCover(text, opts)
 	}
 	if (shape === 'cylinder') {
 		if (fill === 'flow') return cylinderFlow(text, opts)
@@ -444,5 +552,14 @@ export function getCharPositions(opts: WrapTypeOptions): CharPosition[] {
 		if (fill === 'flow') return stoolFlow(text, opts)
 		return stoolCover(text, opts)
 	}
+	if (shape === 'flag') {
+		if (fill === 'flow') return flagFlow(text, opts, t)
+		return flagCover(text, opts, t)
+	}
 	return sphereCover(text, opts)
+}
+
+/** Static alias — equivalent to getCharPositionsAt(opts, 0). */
+export function getCharPositions(opts: WrapTypeOptions): CharPosition[] {
+	return getCharPositionsAt(opts, 0)
 }
