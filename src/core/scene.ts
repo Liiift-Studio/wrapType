@@ -10,6 +10,36 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { WrapTypeOptions, CharPosition } from './types'
 import { isAnimatedShape, getCharPositionsAt } from './geometry'
 
+// ─── Font measurement ─────────────────────────────────────────────────────────
+
+/**
+ * Measure the advance width of each unique character in `text` using the Canvas
+ * 2D API. Returns a Map used by the geometry engine for justified layout.
+ * Falls back gracefully if canvas is unavailable (SSR).
+ */
+function measureCharWidths(
+	text: string,
+	fontSize: number,
+	fontFamily: string,
+	fontWeight: string | number,
+): Map<string, number> {
+	const map = new Map<string, number>()
+	if (typeof document === 'undefined') return map
+
+	const canvas  = document.createElement('canvas')
+	const ctx     = canvas.getContext('2d')
+	if (!ctx) return map
+
+	ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+
+	for (const char of text) {
+		if (!map.has(char)) {
+			map.set(char, ctx.measureText(char).width)
+		}
+	}
+	return map
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Handle returned by createWrapScene — use to resize or destroy the scene */
@@ -69,6 +99,16 @@ export function createWrapScene(
 	opts: WrapTypeOptions,
 ): SceneHandle {
 	// ── Scene + camera ─────────────────────────────────────────────────────────
+	// Measure actual character advance widths for justified layout
+	const charWidthMap = measureCharWidths(
+		opts.text || 'Type',
+		opts.fontSize   ?? 14,
+		opts.fontFamily ?? 'sans-serif',
+		opts.fontWeight ?? 'normal',
+	)
+	// Inject into opts so geometry functions can use them
+	opts = { ...opts, charWidthMap }
+
 	const scene  = new Scene()
 	const width  = container.clientWidth  || 600
 	const height = container.clientHeight || 400
@@ -103,13 +143,14 @@ export function createWrapScene(
 			el.style.cssText = [
 				`font-family:${opts.fontFamily ?? 'inherit'}`,
 				`font-size:${opts.fontSize ?? 14}px`,
+				`font-weight:${opts.fontWeight ?? 'normal'}`,
 				`color:${opts.color ?? 'white'}`,
 				'pointer-events:none',
 				'user-select:none',
 				'white-space:nowrap',
 				'display:block',
 				'line-height:1',
-				'will-change:transform',   // promote each char to its own GPU layer
+				'will-change:transform',
 			].join(';')
 
 			const obj = new CSS3DObject(el)

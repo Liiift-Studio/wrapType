@@ -25,10 +25,19 @@ export interface WrapTypeOptions {
 	text: string
 	/** CSS font-family applied to each character span */
 	fontFamily?: string
+	/** CSS font-weight applied to each character span. Default: 'normal' */
+	fontWeight?: string | number
 	/** Font size in CSS pixels (= Three.js world units). Default: 14 */
 	fontSize?: number
 	/** CSS color of the character spans. Default: 'white' */
 	color?: string
+	/**
+	 * Measured advance width per character, keyed by the character string.
+	 * Populated automatically by createWrapScene using canvas measureText.
+	 * When present, used instead of charAdvanceRatio for accurate justification.
+	 * @internal
+	 */
+	charWidthMap?: Map<string, number>
 	/** Built-in shape to use when no mesh URL is provided. Default: 'sphere' */
 	shape?: WrapTypeShape
 	/** Surface or silhouette mode. Default: 'surface' */

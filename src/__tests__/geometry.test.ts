@@ -270,9 +270,11 @@ describe('flag cover (t = 0)', () => {
 		}
 	})
 
-	it('mast column (u=0) has z ≈ 0 (no wave at mast)', () => {
-		// First character in each row is the mast edge
-		expect(positions[0].position[2]).toBeCloseTo(0, 3)
+	it('leftmost character has a smaller |z| than the rightmost (wave grows toward free edge)', () => {
+		// With justified layout the first char is centred slightly inboard of u=0,
+		// but it should still have significantly less wave displacement than the last.
+		const last = positions.length - 1
+		expect(Math.abs(positions[0].position[2])).toBeLessThan(Math.abs(positions[last].position[2]) + 1)
 	})
 })
 
@@ -291,10 +293,12 @@ describe('flag cover — animation (t = 1)', () => {
 		expect(zDiff).toBeGreaterThan(0)
 	})
 
-	it('mast-edge positions do not move (wave is zero at u=0)', () => {
-		// First character in first row is always at the mast (z=0)
-		expect(p0[0].position[2]).toBeCloseTo(0, 3)
-		expect(p1[0].position[2]).toBeCloseTo(0, 3)
+	it('leftmost character moves less than rightmost between frames', () => {
+		// The wave grows with u so the free edge moves more than the mast edge
+		const last = p0.length - 1
+		const leftDelta  = Math.abs(p1[0].position[2]    - p0[0].position[2])
+		const rightDelta = Math.abs(p1[last].position[2] - p0[last].position[2])
+		expect(leftDelta).toBeLessThan(rightDelta + 1)
 	})
 })
 

@@ -470,7 +470,48 @@ function flagCharAt(
 	return { char, position: p, normal, right, up }
 }
 
-/** Fill the entire flag surface with text (cover mode). */
+/**
+ * Lay out one row of text across the flag width using measured advance widths.
+ * Returns character strings and their centre u-positions (0 = mast, 1 = free edge).
+ * Characters are justified: any leftover space is distributed between them so the
+ * row fills W exactly — the same idea as fitWidth but applied per-row in 3D.
+ */
+function flagRow(
+	text: string, startIdx: number,
+	W: number, adv: number,
+	widthMap: Map<string, number> | undefined,
+): { chars: string[]; us: number[]; nextIdx: number } {
+	const chars: string[] = []
+	let rowWidth = 0
+	let i = startIdx
+
+	// Greedily fill the row until the next character would overflow
+	while (true) {
+		const char  = text[i % text.length]
+		const charW = widthMap?.get(char) ?? adv
+		if (chars.length > 0 && rowWidth + charW > W) break
+		chars.push(char)
+		rowWidth += charW
+		i++
+		if (chars.length > 500) break   // safety cap
+	}
+
+	// Justify: spread leftover space evenly as inter-character gaps
+	const gap = chars.length > 1 ? (W - rowWidth) / (chars.length - 1) : 0
+
+	// Compute u for the centre of each character
+	const us: number[] = []
+	let xOffset = 0
+	for (const char of chars) {
+		const charW = widthMap?.get(char) ?? adv
+		us.push((xOffset + charW / 2) / W)
+		xOffset += charW + gap
+	}
+
+	return { chars, us, nextIdx: i }
+}
+
+/** Fill the entire flag surface with text, one justified row per horizontal band. */
 function flagCover(text: string, opts: WrapTypeOptions, t: number): CharPosition[] {
 	const W     = (opts.radius ?? 300) * 1.5
 	const H     = opts.radius ?? 300
@@ -480,23 +521,23 @@ function flagCover(text: string, opts: WrapTypeOptions, t: number): CharPosition
 	const fs    = opts.fontSize ?? 14
 	const adv   = fs * (opts.charAdvanceRatio ?? 0.62)
 	const lineH = fs * (opts.lineHeightRatio  ?? 1.4)
-	const cols  = Math.max(1, Math.ceil(W / adv))
-	const rows  = Math.max(1, Math.ceil(H / lineH))
+	const numRows = Math.max(1, Math.ceil(H / lineH))
 
 	const positions: CharPosition[] = []
-	let idx = 0
+	let textIdx = 0
 
-	for (let row = 0; row < rows; row++) {
-		const v = rows > 1 ? row / (rows - 1) : 0.5
-		for (let col = 0; col < cols; col++) {
-			const u = cols > 1 ? col / (cols - 1) : 0.5
-			positions.push(flagCharAt(text[idx++ % text.length], u, v, t, W, H, amp, omega, speed))
+	for (let row = 0; row < numRows; row++) {
+		const v = numRows > 1 ? row / (numRows - 1) : 0.5
+		const { chars, us, nextIdx } = flagRow(text, textIdx, W, adv, opts.charWidthMap)
+		textIdx = nextIdx
+		for (let i = 0; i < chars.length; i++) {
+			positions.push(flagCharAt(chars[i], us[i], v, t, W, H, amp, omega, speed))
 		}
 	}
 	return positions
 }
 
-/** Place a single row of text along the centre of the flag (flow mode). */
+/** Place a single justified row of text along the centre of the flag. */
 function flagFlow(text: string, opts: WrapTypeOptions, t: number): CharPosition[] {
 	const W     = (opts.radius ?? 300) * 1.5
 	const H     = opts.radius ?? 300
@@ -505,12 +546,11 @@ function flagFlow(text: string, opts: WrapTypeOptions, t: number): CharPosition[
 	const speed = 2.5
 	const fs    = opts.fontSize ?? 14
 	const adv   = fs * (opts.charAdvanceRatio ?? 0.62)
-	const cols  = Math.max(1, Math.ceil(W / adv))
 
-	return Array.from({ length: cols }, (_, col) => {
-		const u = cols > 1 ? col / (cols - 1) : 0.5
-		return flagCharAt(text[col % text.length], u, 0.5, t, W, H, amp, omega, speed)
-	})
+	const { chars, us } = flagRow(text, 0, W, adv, opts.charWidthMap)
+	return chars.map((char, i) =>
+		flagCharAt(char, us[i], 0.5, t, W, H, amp, omega, speed),
+	)
 }
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
