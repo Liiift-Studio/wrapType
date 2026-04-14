@@ -95,6 +95,59 @@ export default function Home() {
 				</div>
 			</section>
 
+			{/* 3D file best practices */}
+			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
+				<p className="text-xs uppercase tracking-widest opacity-50">Custom meshes</p>
+				<p className="text-sm opacity-60 leading-relaxed max-w-lg">
+					Drop any <code className="text-xs font-mono">.glb</code>,{" "}
+					<code className="text-xs font-mono">.gltf</code>, or{" "}
+					<code className="text-xs font-mono">.obj</code> file onto the demo above.
+					wrapType samples the surface with{" "}
+					<code className="text-xs font-mono">MeshSurfaceSampler</code>, orients each
+					character along the local normal, then auto-scales to fit the scene radius.
+				</p>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm leading-relaxed opacity-70">
+					<div className="flex flex-col gap-3">
+						<p className="font-semibold opacity-100 text-base">Prefer GLB over OBJ</p>
+						<p>
+							GLB is a self-contained binary bundle — no separate{" "}
+							<code className="text-xs font-mono">.mtl</code> or texture files.
+							Normals, materials, and the scene hierarchy are all embedded.
+							OBJ works but ships without normals by default; wrapType computes
+							them automatically when absent.
+						</p>
+					</div>
+					<div className="flex flex-col gap-3">
+						<p className="font-semibold opacity-100 text-base">One mesh, merged geometry</p>
+						<p>
+							wrapType picks the first <code className="text-xs font-mono">Mesh</code> it
+							finds in the scene graph. For multi-part models, merge all objects into
+							a single mesh before exporting so the full surface is sampled, not
+							just one component.
+						</p>
+					</div>
+					<div className="flex flex-col gap-3">
+						<p className="font-semibold opacity-100 text-base">Keep polygon count reasonable</p>
+						<p>
+							5,000–50,000 triangles is plenty. Higher counts do not improve text
+							placement quality — <code className="text-xs font-mono">MeshSurfaceSampler</code>{" "}
+							distributes characters area-proportionally regardless. Lighter meshes
+							load and parse faster in the browser.
+						</p>
+					</div>
+					<div className="flex flex-col gap-3">
+						<p className="font-semibold opacity-100 text-base">Scale and coordinate system</p>
+						<p>
+							GLTF and OBJ both use Y-up, right-handed axes. wrapType auto-fits the
+							bounding box to its <code className="text-xs font-mono">radius</code> option,
+							so absolute model scale does not matter. Recalculate normals in your
+							DCC tool after any non-uniform scaling to keep character orientation
+							correct.
+						</p>
+					</div>
+				</div>
+			</section>
+
 			{/* Usage */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
 				<div className="flex items-baseline gap-4">

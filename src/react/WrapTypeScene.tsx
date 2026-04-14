@@ -5,12 +5,19 @@
 import { useEffect, useRef } from 'react'
 import { getCharPositions } from '../core/geometry'
 import { createWrapScene } from '../core/scene'
-import type { WrapTypeOptions } from '../core/types'
+import type { WrapTypeOptions, CharPosition } from '../core/types'
 
 /** Props for WrapTypeScene — all WrapTypeOptions plus optional className / style */
 export interface WrapTypeSceneProps extends WrapTypeOptions {
 	className?: string
 	style?: React.CSSProperties
+	/**
+	 * Pre-computed character positions, e.g. from `getCharPositionsFromMesh`.
+	 * When provided, bypasses the built-in geometry computation entirely so
+	 * custom mesh surfaces can be used. The scene still respects `autoRotate`,
+	 * `color`, `fontSize`, `fontFamily`, and `fontWeight` from the other props.
+	 */
+	positions?: CharPosition[]
 }
 
 /**
@@ -19,7 +26,7 @@ export interface WrapTypeSceneProps extends WrapTypeOptions {
  *
  * The Three.js CSS3DRenderer is initialised on mount and torn down on unmount.
  * The scene rebuilds whenever text, shape, fill, mode, fontSize, fontFamily,
- * color, or radius changes.
+ * color, or radius changes — or when the `positions` prop reference changes.
  *
  * @example
  * <WrapTypeScene
@@ -33,6 +40,7 @@ export interface WrapTypeSceneProps extends WrapTypeOptions {
 export function WrapTypeScene({
 	className,
 	style,
+	positions: customPositions,
 	...opts
 }: WrapTypeSceneProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
@@ -41,8 +49,8 @@ export function WrapTypeScene({
 		const container = containerRef.current
 		if (!container || typeof window === 'undefined') return
 
-		const positions = getCharPositions(opts)
-		const handle    = createWrapScene(container, positions, opts)
+		const pos    = customPositions ?? getCharPositions(opts)
+		const handle = createWrapScene(container, pos, opts)
 
 		return () => handle.destroy()
 	}, [
@@ -58,6 +66,7 @@ export function WrapTypeScene({
 		opts.autoRotate,
 		opts.autoRotateSpeed,
 		opts.camera,
+		customPositions,
 	])
 
 	return (

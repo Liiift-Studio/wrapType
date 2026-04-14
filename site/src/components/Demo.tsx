@@ -1,9 +1,10 @@
 "use client"
 
-// wrapType demo — live 3D scene with shape and fill controls
-import { useState, useDeferredValue } from "react"
-import { WrapTypeScene } from "@liiift-studio/wraptype"
-import type { WrapTypeShape, WrapTypeFill } from "@liiift-studio/wraptype"
+// wrapType demo — live 3D scene with shape, fill, and 3D file-drop controls
+import { useState, useDeferredValue, useCallback } from "react"
+import { WrapTypeScene, getCharPositionsFromMesh } from "@liiift-studio/wraptype"
+import type { WrapTypeShape, WrapTypeFill, CharPosition } from "@liiift-studio/wraptype"
+import { Mesh } from "three"
 
 const DEFAULT_TEXT  = "TYPE"
 const DEFAULT_SHAPE = "flag"  as WrapTypeShape
@@ -35,16 +36,106 @@ export default function Demo() {
 	const [fill,    setFill]    = useState<WrapTypeFill>(DEFAULT_FILL)
 	const [autoRot, setAutoRot] = useState(true)
 
+	// 3D mesh drop state
+	const [meshPositions, setMeshPositions] = useState<CharPosition[] | null>(null)
+	const [meshName,      setMeshName]      = useState<string | null>(null)
+	const [meshError,     setMeshError]     = useState<string | null>(null)
+	const [meshLoading,   setMeshLoading]   = useState(false)
+	const [isDragging,    setIsDragging]    = useState(false)
+
 	const dText = useDeferredValue(text)
+
+	// ── Drag-and-drop handlers ───────────────────────────────────────────────
+
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+		setIsDragging(true)
+	}, [])
+
+	const handleDragLeave = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+		setIsDragging(false)
+	}, [])
+
+	const handleDrop = useCallback(async (e: React.DragEvent) => {
+		e.preventDefault()
+		setIsDragging(false)
+		setMeshError(null)
+
+		const file = e.dataTransfer.files[0]
+		if (!file) return
+
+		const ext = file.name.split(".").pop()?.toLowerCase()
+		if (!["glb", "gltf", "obj"].includes(ext ?? "")) {
+			setMeshError("Only .glb, .gltf, and .obj files are supported.")
+			return
+		}
+
+		setMeshLoading(true)
+		const url = URL.createObjectURL(file)
+
+		try {
+			let firstMesh: Mesh | null = null
+
+			if (ext === "glb" || ext === "gltf") {
+				const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js")
+				const loader = new GLTFLoader()
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const gltf = await new Promise<any>((res, rej) => loader.load(url, res, undefined, rej))
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				gltf.scene.traverse((child: any) => {
+					if (!firstMesh && child instanceof Mesh) firstMesh = child
+				})
+			} else {
+				const { OBJLoader } = await import("three/addons/loaders/OBJLoader.js")
+				const loader = new OBJLoader()
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const obj = await new Promise<any>((res, rej) => loader.load(url, res, undefined, rej))
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				obj.traverse((child: any) => {
+					if (!firstMesh && child instanceof Mesh) firstMesh = child
+				})
+			}
+
+			if (!firstMesh) {
+				setMeshError("No mesh found in the file. Try merging all objects into one.")
+				return
+			}
+
+			const positions = getCharPositionsFromMesh(firstMesh, dText || "TYPE", { radius: 300 }, 250)
+			setMeshPositions(positions)
+			setMeshName(file.name)
+		} catch {
+			setMeshError("Failed to load the file. Check the format and try again.")
+		} finally {
+			URL.revokeObjectURL(url)
+			setMeshLoading(false)
+		}
+	}, [dText])
+
+	const clearMesh = useCallback(() => {
+		setMeshPositions(null)
+		setMeshName(null)
+		setMeshError(null)
+	}, [])
+
+	// When a mesh is active, pass its positions and suppress animation
+	const sceneShape = meshPositions ? "sphere" : shape
 
 	return (
 		<div className="w-full flex flex-col gap-6">
 
-			{/* 3D scene */}
-			<div className="rounded-xl overflow-hidden" style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}>
+			{/* 3D scene — also the drop target */}
+			<div
+				className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-white/40 bg-white/5" : ""}`}
+				style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
+				onDragOver={handleDragOver}
+				onDragLeave={handleDragLeave}
+				onDrop={handleDrop}
+			>
 				<WrapTypeScene
 					text={dText}
-					shape={shape}
+					shape={sceneShape}
 					fill={fill}
 					fontSize={FONT_SIZE}
 					fontFamily={FONT_FAMILY}
@@ -53,12 +144,53 @@ export default function Demo() {
 					color="rgba(220,210,255,0.9)"
 					autoRotate={autoRot}
 					autoRotateSpeed={0.5}
+					positions={meshPositions ?? undefined}
 					style={{ width: "100%", height: "100%" }}
 				/>
+
+				{/* Drop hover overlay */}
+				{isDragging && (
+					<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+						<p className="text-white/80 text-sm tracking-widest uppercase">Drop to wrap</p>
+					</div>
+				)}
+
+				{/* Loading overlay */}
+				{meshLoading && (
+					<div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+						<p className="text-white/60 text-xs tracking-widest uppercase">Loading mesh…</p>
+					</div>
+				)}
+
+				{/* Subtle drop hint when idle */}
+				{!meshPositions && !isDragging && !meshLoading && (
+					<p className="absolute bottom-3 right-4 text-xs opacity-20 pointer-events-none tracking-wide select-none">
+						Drop .glb / .gltf / .obj
+					</p>
+				)}
+
+				{/* Active mesh badge + clear */}
+				{meshName && !isDragging && (
+					<div className="absolute top-3 left-3 flex items-center gap-2">
+						<span className="text-xs opacity-40 font-mono">{meshName}</span>
+						<button
+							onClick={clearMesh}
+							className="text-xs opacity-25 hover:opacity-60 transition-opacity leading-none"
+							aria-label="Clear custom mesh"
+						>
+							✕
+						</button>
+					</div>
+				)}
 			</div>
 
-			{/* Controls */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+			{/* Error message */}
+			{meshError && (
+				<p className="text-xs opacity-70" style={{ color: "rgba(255,120,120,0.9)" }}>{meshError}</p>
+			)}
+
+			{/* Controls — greyed out while a custom mesh is active */}
+			<div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs transition-opacity ${meshPositions ? "opacity-30 pointer-events-none select-none" : ""}`}>
 
 				{/* Shape */}
 				<div className="flex flex-col gap-2">
