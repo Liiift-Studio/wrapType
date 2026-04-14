@@ -1,7 +1,8 @@
 "use client"
 
 // wrapType demo — DOM (CSS3DRenderer) and SDF (WebGL/troika) renderer tabs
-import { useState, useDeferredValue, useCallback, useRef, Suspense, lazy } from "react"
+import { useState, useDeferredValue, useCallback, useRef, Suspense, lazy, Component } from "react"
+import type { ReactNode } from "react"
 import { WrapTypeScene, getCharPositionsFromMesh } from "@liiift-studio/wraptype"
 import type { WrapTypeShape, WrapTypeFill, CharPosition } from "@liiift-studio/wraptype"
 import { Mesh } from "three"
@@ -9,6 +10,34 @@ import { Mesh } from "three"
 // ─── Lazy-load SDF Canvas (avoids SSR errors) ──────────────────────────────
 
 const SDFCanvas = lazy(() => import("./SDFCanvas"))
+
+// ─── Error boundary for the SDF WebGL canvas ─────────────────────────────────
+
+interface SdfErrorBoundaryState { hasError: boolean }
+class SdfErrorBoundary extends Component<{ children: ReactNode }, SdfErrorBoundaryState> {
+	constructor(props: { children: ReactNode }) {
+		super(props)
+		this.state = { hasError: false }
+	}
+	static getDerivedStateFromError() { return { hasError: true } }
+	reset() { this.setState({ hasError: false }) }
+	render() {
+		if (this.state.hasError) {
+			return (
+				<div className="w-full h-full flex flex-col items-center justify-center gap-3">
+					<p className="text-xs opacity-40 tracking-widest uppercase">WebGL error</p>
+					<button
+						onClick={() => this.reset()}
+						className="text-xs px-4 py-2 rounded-full border border-white/20 hover:border-white/40 transition-colors"
+					>
+						Reload canvas
+					</button>
+				</div>
+			)
+		}
+		return this.props.children
+	}
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -434,6 +463,7 @@ export default function Demo() {
 						className="rounded-xl overflow-hidden"
 						style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
 					>
+						<SdfErrorBoundary>
 						<Suspense fallback={
 							<div className="w-full h-full flex items-center justify-center">
 								<span className="text-xs opacity-30 tracking-widest uppercase">Loading WebGL…</span>
@@ -449,6 +479,7 @@ export default function Demo() {
 								letterSpacing={sdfLetterSpacing}
 							/>
 						</Suspense>
+						</SdfErrorBoundary>
 					</div>
 
 					{/* SDF Controls */}
