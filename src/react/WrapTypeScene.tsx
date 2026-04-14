@@ -60,12 +60,15 @@ export function WrapTypeScene({
 		opts.mode,
 		opts.fontSize,
 		opts.fontFamily,
+		opts.fontWeight,
 		opts.color,
 		opts.radius,
 		opts.height,
 		opts.autoRotate,
 		opts.autoRotateSpeed,
 		opts.camera,
+		opts.repeat,
+		opts.characterCurve,
 		customPositions,
 	])
 

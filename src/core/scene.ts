@@ -137,12 +137,33 @@ export function createWrapScene(
 		for (const o of objects) scene.remove(o)
 		objects.length = 0
 
+		const curve  = opts.characterCurve ?? 0
+		const radius = opts.radius ?? 300
+		const fs     = opts.fontSize ?? 14
+
+		// Precompute curvature angles (degrees) once per build.
+		// rotateX: tilts top/bottom of the character relative to surface — based
+		//          on how many degrees of arc the character HEIGHT subtends.
+		// rotateY: tilts left/right — based on the character WIDTH arc.
+		// Perspective distance: 4× radius keeps the distortion moderate at curve=1.
+		const xAngleFactor = curve * (fs / radius) * (180 / Math.PI) * 0.5
+		const perspStr     = curve > 0 ? `perspective(${radius * 4}px) ` : ''
+
 		for (const cp of positions) {
+			// Inner span: holds the glyph and the per-character curvature transform.
+			// CSS3DRenderer never touches this element — it only writes matrix3d
+			// to the outer wrapper div below.
 			const el = document.createElement('span')
 			el.textContent = cp.char === ' ' ? '\u00a0' : cp.char  // non-breaking space
+
+			const advW  = opts.charWidthMap?.get(cp.char) ?? fs * (opts.charAdvanceRatio ?? 0.62)
+			const yAngle = curve > 0
+				? curve * (advW / radius) * (180 / Math.PI) * 0.5
+				: 0
+
 			el.style.cssText = [
 				`font-family:${opts.fontFamily ?? 'inherit'}`,
-				`font-size:${opts.fontSize ?? 14}px`,
+				`font-size:${fs}px`,
 				`font-weight:${opts.fontWeight ?? 'normal'}`,
 				`color:${opts.color ?? 'white'}`,
 				'pointer-events:none',
@@ -150,10 +171,19 @@ export function createWrapScene(
 				'white-space:nowrap',
 				'display:block',
 				'line-height:1',
-				'will-change:transform',
-			].join(';')
+				curve > 0
+					? `transform:${perspStr}rotateX(${-xAngleFactor}deg) rotateY(${yAngle}deg)`
+					: '',
+			].filter(Boolean).join(';')
 
-			const obj = new CSS3DObject(el)
+			// Outer wrapper: CSS3DRenderer writes the world-space matrix3d here.
+			// Keeping the two elements separate lets the curvature transform on
+			// the inner span compose naturally without interfering with Three.js.
+			const wrapper = document.createElement('div')
+			wrapper.style.cssText = 'will-change:transform;line-height:1;'
+			wrapper.appendChild(el)
+
+			const obj = new CSS3DObject(wrapper)
 			const [px, py, pz] = cp.position
 			obj.position.set(px, py, pz)
 			obj.quaternion.setFromRotationMatrix(

@@ -60,6 +60,26 @@ export interface WrapTypeOptions {
 	charAdvanceRatio?: number
 	/** Line height as fraction of fontSize. Default: 1.4 */
 	lineHeightRatio?: number
+	/**
+	 * When false, text is placed exactly once without repeating or tiling.
+	 * Default: true — text tiles to fill the chosen fill region.
+	 *
+	 * With repeat:false the geometry still determines where positions land
+	 * (cover scatters them across the full surface; flow runs around the
+	 * equator), but generation stops at text.length characters so the text
+	 * appears as a single un-looped pass.
+	 */
+	repeat?: boolean
+	/**
+	 * Bend each character in its own local coordinate frame to follow the
+	 * surface curvature. 0 = flat (default), 1 = full bend.
+	 *
+	 * Implemented via CSS `perspective + rotateX/rotateY` on the character
+	 * element inside its CSS3DObject wrapper, so the effect composes with
+	 * any existing font-variation-settings or CSS animations without
+	 * re-rendering the scene.
+	 */
+	characterCurve?: number
 }
 
 /**

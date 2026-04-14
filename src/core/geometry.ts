@@ -565,38 +565,47 @@ export function isAnimatedShape(shape: string | undefined): boolean {
 /**
  * Compute the full list of character positions and orientations for the given
  * shape + fill combination at an optional animation time `t` (seconds).
+ *
+ * When `opts.repeat` is false the geometry still determines where positions
+ * land, but the result is sliced to `text.length` so each character appears
+ * exactly once without tiling.
  */
 export function getCharPositionsAt(opts: WrapTypeOptions, t: number): CharPosition[] {
 	const shape = opts.shape ?? 'sphere'
 	const fill  = opts.fill  ?? 'cover'
 	const text  = opts.text  || 'Type'
 
+	let positions: CharPosition[]
+
 	if (shape === 'sphere') {
-		if (fill === 'flow')        return sphereFlow(text, opts)
-		if (fill === 'full-width')  return sphereFullWidth(text, opts)
-		if (fill === 'full-height') return sphereFullHeight(text, opts)
-		return sphereCover(text, opts)
+		if (fill === 'flow')        positions = sphereFlow(text, opts)
+		else if (fill === 'full-width')  positions = sphereFullWidth(text, opts)
+		else if (fill === 'full-height') positions = sphereFullHeight(text, opts)
+		else                             positions = sphereCover(text, opts)
+	} else if (shape === 'cylinder') {
+		positions = fill === 'flow' ? cylinderFlow(text, opts) : cylinderCover(text, opts)
+	} else if (shape === 'torus') {
+		positions = fill === 'flow' ? torusFlow(text, opts) : torusCover(text, opts)
+	} else if (shape === 'plane') {
+		positions = planeCover(text, opts)
+	} else if (shape === 'stool') {
+		positions = fill === 'flow' ? stoolFlow(text, opts) : stoolCover(text, opts)
+	} else if (shape === 'flag') {
+		positions = fill === 'flow' ? flagFlow(text, opts, t) : flagCover(text, opts, t)
+	} else {
+		positions = sphereCover(text, opts)
 	}
-	if (shape === 'cylinder') {
-		if (fill === 'flow') return cylinderFlow(text, opts)
-		return cylinderCover(text, opts)
+
+	// No-repeat: place text exactly once, sliced to text.length characters,
+	// with each character taken directly from the string (no modulo cycling).
+	if (opts.repeat === false) {
+		positions = positions.slice(0, text.length).map((cp, i) => ({
+			...cp,
+			char: text[i],
+		}))
 	}
-	if (shape === 'torus') {
-		if (fill === 'flow') return torusFlow(text, opts)
-		return torusCover(text, opts)
-	}
-	if (shape === 'plane') {
-		return planeCover(text, opts)
-	}
-	if (shape === 'stool') {
-		if (fill === 'flow') return stoolFlow(text, opts)
-		return stoolCover(text, opts)
-	}
-	if (shape === 'flag') {
-		if (fill === 'flow') return flagFlow(text, opts, t)
-		return flagCover(text, opts, t)
-	}
-	return sphereCover(text, opts)
+
+	return positions
 }
 
 /** Static alias — equivalent to getCharPositionsAt(opts, 0). */
