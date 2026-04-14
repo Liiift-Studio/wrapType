@@ -224,26 +224,37 @@ export default function Demo() {
 	return (
 		<div className="w-full flex flex-col gap-6">
 
-			{/* Renderer tabs */}
-			<div className="flex gap-1 text-xs">
-				{(["dom", "sdf"] as RendererMode[]).map(mode => (
-					<button
-						key={mode}
-						onClick={() => setRenderer(mode)}
-						className={`px-3 py-1.5 rounded-full border transition-colors uppercase tracking-widest ${
-							renderer === mode
-								? "border-white/60 bg-white/10"
-								: "border-white/20 hover:border-white/40"
-						}`}
-					>
-						{mode === "dom" ? "DOM — CSS3D" : "SDF — WebGL"}
-					</button>
-				))}
-				<span className="ml-2 self-center opacity-30 text-xs">
-					{renderer === "dom"
-						? "Real HTML spans · variable fonts · composable with Liiift tools"
-						: "GPU text · troika SDF · native surface curvature"}
-				</span>
+			{/* Renderer tab bar */}
+			<div className="flex w-full rounded-lg overflow-hidden text-xs" style={{ border: "1px solid rgba(255,255,255,0.12)" }}>
+				<button
+					onClick={() => setRenderer("dom")}
+					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
+					style={{
+						background: renderer === "dom" ? "rgba(255,255,255,0.08)" : "transparent",
+						borderRight: "1px solid rgba(255,255,255,0.12)",
+					}}
+				>
+					<span className={`uppercase tracking-widest font-medium transition-opacity ${renderer === "dom" ? "opacity-100" : "opacity-40"}`}>
+						DOM — CSS3D
+					</span>
+					<span className={`hidden sm:block transition-opacity ${renderer === "dom" ? "opacity-40" : "opacity-20"}`}>
+						Real HTML spans · variable fonts · composable
+					</span>
+				</button>
+				<button
+					onClick={() => setRenderer("sdf")}
+					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
+					style={{
+						background: renderer === "sdf" ? "rgba(255,255,255,0.08)" : "transparent",
+					}}
+				>
+					<span className={`uppercase tracking-widest font-medium transition-opacity ${renderer === "sdf" ? "opacity-100" : "opacity-40"}`}>
+						SDF — WebGL
+					</span>
+					<span className={`hidden sm:block transition-opacity ${renderer === "sdf" ? "opacity-40" : "opacity-20"}`}>
+						GPU text · troika · native surface curvature
+					</span>
+				</button>
 			</div>
 
 			{/* ── DOM TAB ─────────────────────────────────────────────────── */}
