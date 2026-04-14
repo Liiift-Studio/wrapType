@@ -108,6 +108,7 @@ export function createWrapScene(
 				'white-space:nowrap',
 				'display:block',
 				'line-height:1',
+				'will-change:transform',   // promote each char to its own GPU layer
 			].join(';')
 
 			const obj = new CSS3DObject(el)
@@ -144,15 +145,33 @@ export function createWrapScene(
 		controls.enablePan        = false
 	}
 
-	// ── Render loop ────────────────────────────────────────────────────────────
-	let rafId = 0
+	// ── Render loop — dirty flag + pause when off-screen ──────────────────────
+	let rafId     = 0
+	let visible   = true
+	let needRender = true   // render at least one frame on mount
+
+	// Mark dirty whenever the camera moves (damping, drag, autoRotate, etc.)
+	controls?.addEventListener('change', () => { needRender = true })
 
 	function animate() {
 		rafId = requestAnimationFrame(animate)
-		controls?.update()
-		renderer.render(scene, camera)
+		if (!visible) return
+
+		// controls.update() returns true when the camera changed (damping / autoRotate)
+		const moved = controls?.update() ?? false
+		if (moved || needRender) {
+			renderer.render(scene, camera)
+			needRender = false
+		}
 	}
 	animate()
+
+	// ── Intersection observer — pause rAF while scene is off-screen ────────────
+	const io = new IntersectionObserver(([entry]) => {
+		visible = entry.isIntersecting
+		if (visible) needRender = true   // force one render on re-entry
+	})
+	io.observe(container)
 
 	// ── Resize observer ────────────────────────────────────────────────────────
 	const ro = new ResizeObserver(() => {
@@ -163,6 +182,7 @@ export function createWrapScene(
 		camera.updateProjectionMatrix()
 		renderer.setSize(w, h)
 		if (overlay) { overlay.style.width = `${w}px`; overlay.style.height = `${h}px` }
+		needRender = true
 	})
 	ro.observe(container)
 
@@ -170,6 +190,7 @@ export function createWrapScene(
 	return {
 		destroy() {
 			cancelAnimationFrame(rafId)
+			io.disconnect()
 			ro.disconnect()
 			controls?.dispose()
 			renderer.domElement.remove()

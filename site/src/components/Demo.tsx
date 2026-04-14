@@ -5,12 +5,13 @@ import { useState, useDeferredValue } from "react"
 import { WrapTypeScene } from "@liiift-studio/wraptype"
 import type { WrapTypeShape, WrapTypeFill } from "@liiift-studio/wraptype"
 
-const DEFAULT_TEXT  = "Typography is the art and technique of arranging type"
-const DEFAULT_SHAPE = "sphere" as WrapTypeShape
-const DEFAULT_FILL  = "cover"  as WrapTypeFill
-const DEFAULT_SIZE  = 13
+const DEFAULT_TEXT  = "wraptype "
+const DEFAULT_SHAPE = "stool"  as WrapTypeShape
+const DEFAULT_FILL  = "flow"   as WrapTypeFill
+const DEFAULT_SIZE  = 18
 
 const SHAPES: { value: WrapTypeShape; label: string }[] = [
+	{ value: "stool",    label: "Stool"    },
 	{ value: "sphere",   label: "Sphere"   },
 	{ value: "cylinder", label: "Cylinder" },
 	{ value: "torus",    label: "Torus"    },
@@ -44,6 +45,7 @@ export default function Demo() {
 					shape={shape}
 					fill={fill}
 					fontSize={dFontSize}
+					radius={200}
 					color="rgba(220,210,255,0.85)"
 					autoRotate={autoRot}
 					autoRotateSpeed={0.6}

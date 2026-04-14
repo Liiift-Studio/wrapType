@@ -194,6 +194,61 @@ describe('plane cover', () => {
 	})
 })
 
+// ─── Stool — flow ─────────────────────────────────────────────────────────────
+
+describe('stool flow', () => {
+	const positions = getCharPositions({ ...BASE, shape: 'stool', fill: 'flow', radius: 200 })
+
+	it('returns at least text.length positions', () => {
+		expect(positions.length).toBeGreaterThanOrEqual(BASE.text.length)
+	})
+
+	it('all positions are at a consistent radius from y-axis (seat rim)', () => {
+		for (const cp of positions) {
+			const r = Math.sqrt(cp.position[0] ** 2 + cp.position[2] ** 2)
+			expect(r).toBeCloseTo(200, 0)
+		}
+	})
+
+	it('all positions are at the same y (single band)', () => {
+		const ys = new Set(positions.map(p => Math.round(p.position[1])))
+		expect(ys.size).toBe(1)
+	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 5)
+		}
+	})
+
+	it('all normals are horizontal (y component = 0)', () => {
+		for (const cp of positions) {
+			expect(cp.normal[1]).toBeCloseTo(0, 5)
+		}
+	})
+})
+
+// ─── Stool — cover ────────────────────────────────────────────────────────────
+
+describe('stool cover', () => {
+	const positions = getCharPositions({ ...BASE, shape: 'stool', fill: 'cover', radius: 200 })
+
+	it('returns many more positions than text length (seat top + rim + legs)', () => {
+		expect(positions.length).toBeGreaterThan(BASE.text.length * 3)
+	})
+
+	it('positions span multiple y values (top, rim, legs at different heights)', () => {
+		const ys = new Set(positions.map(p => Math.round(p.position[1] / 20) * 20))
+		expect(ys.size).toBeGreaterThan(5)
+	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 4)
+		}
+	})
+})
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 describe('getCharPositions dispatcher', () => {

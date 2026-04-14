@@ -305,6 +305,113 @@ function planeCover(text: string, opts: WrapTypeOptions): CharPosition[] {
 	return positions
 }
 
+// ─── Stool ────────────────────────────────────────────────────────────────────
+
+/**
+ * Place characters in a single band around the stool's seat rim (flow mode).
+ * The seat rim is a cylinder at the top of the stool — gives a clean circular
+ * silhouette and is the lowest element count of any stool fill.
+ */
+function stoolFlow(text: string, opts: WrapTypeOptions): CharPosition[] {
+	const r      = opts.radius ?? 200
+	const seatY  = r * 0.55            // seat elevation above origin
+	const adv    = (opts.fontSize ?? 14) * (opts.charAdvanceRatio ?? 0.62)
+	const total  = Math.max(text.length, Math.ceil(2 * Math.PI * r / adv))
+	const step   = adv / r
+
+	return Array.from({ length: total }, (_, i) => {
+		const theta   = i * step
+		const x       = r * Math.cos(theta)
+		const z       = r * Math.sin(theta)
+		const normal: [number, number, number] = [Math.cos(theta), 0, Math.sin(theta)]
+		const right: [number, number, number]  = [-Math.sin(theta), 0, Math.cos(theta)]
+		const up: [number, number, number]     = [0, 1, 0]
+		return { char: text[i % text.length], position: [x, seatY, z], normal, right, up }
+	})
+}
+
+/**
+ * Cover the stool surface — seat top (flat disk), seat rim (short cylinder),
+ * and four legs (thin cylinders at the corners).
+ */
+function stoolCover(text: string, opts: WrapTypeOptions): CharPosition[] {
+	const r         = opts.radius ?? 200
+	const seatY     = r * 0.55
+	const seatThick = r * 0.08
+	const legRadius = Math.max(8, r * 0.07)
+	const legOffset = r * 0.58          // XZ distance of each leg from centre
+	const legBottom = -r * 1.2
+	const legHeight = seatY - legBottom
+	const fs        = opts.fontSize ?? 14
+	const adv       = fs * (opts.charAdvanceRatio ?? 0.62)
+	const lineH     = fs * (opts.lineHeightRatio  ?? 1.4)
+
+	const positions: CharPosition[] = []
+	let idx = 0
+
+	// — Seat top (flat disk, normal pointing up) ——————————————————————————
+	const gridStep = adv
+	const steps    = Math.ceil(r * 2 / gridStep)
+	for (let row = 0; row < steps; row++) {
+		for (let col = 0; col < steps; col++) {
+			const x = -r + (col + 0.5) * gridStep
+			const z = -r + (row + 0.5) * gridStep
+			if (x * x + z * z > r * r) continue   // skip outside disk
+			const normal: [number, number, number] = [0, 1, 0]
+			const right: [number, number, number]  = [1, 0, 0]
+			const up: [number, number, number]     = [0, 0, -1]
+			positions.push({ char: text[idx++ % text.length], position: [x, seatY, z], normal, right, up })
+		}
+	}
+
+	// — Seat rim (short cylinder) —————————————————————————————————————————
+	const rimCols = Math.ceil(2 * Math.PI * r / adv)
+	const rimRows = Math.max(1, Math.ceil(seatThick / lineH))
+	for (let row = 0; row < rimRows; row++) {
+		const y = seatY - seatThick + (row + 0.5) * lineH
+		for (let col = 0; col < rimCols; col++) {
+			const theta   = (col / rimCols) * 2 * Math.PI
+			const x       = r * Math.cos(theta)
+			const z       = r * Math.sin(theta)
+			const normal: [number, number, number] = [Math.cos(theta), 0, Math.sin(theta)]
+			const right: [number, number, number]  = [-Math.sin(theta), 0, Math.cos(theta)]
+			const up: [number, number, number]     = [0, 1, 0]
+			positions.push({ char: text[idx++ % text.length], position: [x, y, z], normal, right, up })
+		}
+	}
+
+	// — Four legs (thin cylinders at ±legOffset corners) —————————————————
+	const legCorners: [number, number][] = [
+		[ legOffset,  legOffset],
+		[-legOffset,  legOffset],
+		[ legOffset, -legOffset],
+		[-legOffset, -legOffset],
+	]
+	const legRows = Math.ceil(legHeight / lineH)
+	const legCols = Math.max(1, Math.ceil(2 * Math.PI * legRadius / adv))
+
+	for (const [lx, lz] of legCorners) {
+		for (let row = 0; row < legRows; row++) {
+			const y = legBottom + (row + 0.5) * lineH
+			for (let col = 0; col < legCols; col++) {
+				const theta   = (col / legCols) * 2 * Math.PI
+				const nx      = Math.cos(theta)
+				const nz      = Math.sin(theta)
+				const normal: [number, number, number] = [nx, 0, nz]
+				const right: [number, number, number]  = [-Math.sin(theta), 0, Math.cos(theta)]
+				const up: [number, number, number]     = [0, 1, 0]
+				positions.push({
+					char: text[idx++ % text.length],
+					position: [lx + legRadius * nx, y, lz + legRadius * nz],
+					normal, right, up,
+				})
+			}
+		}
+	}
+
+	return positions
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 /**
@@ -332,6 +439,10 @@ export function getCharPositions(opts: WrapTypeOptions): CharPosition[] {
 	}
 	if (shape === 'plane') {
 		return planeCover(text, opts)
+	}
+	if (shape === 'stool') {
+		if (fill === 'flow') return stoolFlow(text, opts)
+		return stoolCover(text, opts)
 	}
 	return sphereCover(text, opts)
 }
