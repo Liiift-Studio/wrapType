@@ -1,6 +1,6 @@
 {
 	"name": "@liiift-studio/wraptype",
-	"version": "0.0.11",
+	"version": "0.0.12",
 	"description": "Live DOM text wrapping any 3D surface — surface and silhouette modes, orbit camera, built-in shapes plus custom mesh URL",
 	"type": "module",
 	"main": "dist/index.cjs",
