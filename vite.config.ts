@@ -1,4 +1,4 @@
-// vite.config.ts — library-mode build for ESM + CJS + types
+// vite.config.ts — library-mode build for ESM + CJS + types, dual entry (css3d + r3f)
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import dts from 'vite-plugin-dts'
@@ -10,9 +10,13 @@ export default defineConfig({
 	],
 	build: {
 		lib: {
-			entry: 'src/index.ts',
+			entry: {
+				index: 'src/index.ts',
+				r3f:   'src/r3f.ts',
+			},
 			formats: ['es', 'cjs'],
-			fileName: (format) => `index.${format === 'es' ? 'js' : 'cjs'}`,
+			fileName: (format, entryName) =>
+				`${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
 		},
 		rollupOptions: {
 			external: [
@@ -21,9 +25,17 @@ export default defineConfig({
 				'react/jsx-runtime',
 				'three',
 				/^three\//,
+				'@react-three/fiber',
+				'troika-three-text',
 			],
 			output: {
-				globals: { react: 'React', 'react-dom': 'ReactDOM', three: 'THREE' },
+				globals: {
+					react:                  'React',
+					'react-dom':            'ReactDOM',
+					three:                  'THREE',
+					'@react-three/fiber':   'ReactThreeFiber',
+					'troika-three-text':    'TroikaThreeText',
+				},
 			},
 		},
 	},

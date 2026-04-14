@@ -1,14 +1,19 @@
 "use client"
 
-// wrapType demo — live 3D scene with shape, fill, curve, repeat, unit-aware size, and 3D file-drop
-import { useState, useDeferredValue, useCallback, useRef } from "react"
+// wrapType demo — DOM (CSS3DRenderer) and SDF (WebGL/troika) renderer tabs
+import { useState, useDeferredValue, useCallback, useRef, Suspense, lazy } from "react"
 import { WrapTypeScene, getCharPositionsFromMesh } from "@liiift-studio/wraptype"
 import type { WrapTypeShape, WrapTypeFill, CharPosition } from "@liiift-studio/wraptype"
 import { Mesh } from "three"
 
+// ─── Lazy-load SDF Canvas (avoids SSR errors) ──────────────────────────────
+
+const SDFCanvas = lazy(() => import("./SDFCanvas"))
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SizeUnit = "px" | "pt" | "em" | "rem" | "vw" | "vh"
+type RendererMode = "dom" | "sdf"
+type SizeUnit     = "px" | "pt" | "em" | "rem" | "vw" | "vh"
 
 interface UnitConfig {
 	min: number
@@ -43,7 +48,7 @@ function toPx(value: number, unit: SizeUnit): number {
 	return value
 }
 
-/** Convert from px back to a target unit so we can preserve visual size on unit switch. */
+/** Convert from px back to a target unit to preserve visual size on unit switch. */
 function fromPx(px: number, unit: SizeUnit): number {
 	if (unit === "px")  return px
 	if (unit === "pt")  return px * (72 / 96)
@@ -66,9 +71,16 @@ const DEFAULT_FILL  = "cover" as WrapTypeFill
 const FONT_FAMILY   = "Inter, sans-serif"
 const FONT_WEIGHT   = 900
 
-const SHAPES: { value: WrapTypeShape; label: string }[] = [
+const DOM_SHAPES: { value: WrapTypeShape; label: string }[] = [
 	{ value: "flag",     label: "Flag"     },
 	{ value: "stool",    label: "Stool"    },
+	{ value: "sphere",   label: "Sphere"   },
+	{ value: "cylinder", label: "Cylinder" },
+	{ value: "torus",    label: "Torus"    },
+	{ value: "plane",    label: "Plane"    },
+]
+
+const SDF_SHAPES: { value: WrapTypeShape; label: string }[] = [
 	{ value: "sphere",   label: "Sphere"   },
 	{ value: "cylinder", label: "Cylinder" },
 	{ value: "torus",    label: "Torus"    },
@@ -97,6 +109,9 @@ function UploadIcon() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Demo() {
+	const [renderer, setRenderer] = useState<RendererMode>("dom")
+
+	// ── DOM tab state ──────────────────────────────────────────────────────
 	const [text,    setText]    = useState(DEFAULT_TEXT)
 	const [shape,   setShape]   = useState<WrapTypeShape>(DEFAULT_SHAPE)
 	const [fill,    setFill]    = useState<WrapTypeFill>(DEFAULT_FILL)
@@ -104,11 +119,9 @@ export default function Demo() {
 	const [repeat,  setRepeat]  = useState(true)
 	const [curve,   setCurve]   = useState(0)
 
-	// Size: value in selected unit, separate unit state
+	// Size in selected unit
 	const [sizeValue, setSizeValue] = useState(144)
 	const [sizeUnit,  setSizeUnit]  = useState<SizeUnit>("px")
-
-	// Derived pixel value for the scene
 	const fontSizePx = toPx(sizeValue, sizeUnit)
 
 	// 3D mesh drop state
@@ -120,6 +133,15 @@ export default function Demo() {
 
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const dText = useDeferredValue(text)
+
+	// ── SDF tab state ──────────────────────────────────────────────────────
+	const [sdfShape,             setSdfShape]             = useState<WrapTypeShape>("sphere")
+	const [sdfAutoRot,           setSdfAutoRot]           = useState(true)
+	const [sdfCurvatureTracking, setSdfCurvatureTracking] = useState(true)
+	const [sdfColor,             setSdfColor]             = useState("#ffffff")
+	// fontSize in Three.js units (1 = 1 world unit); radius is fixed at 2
+	const [sdfFontSize,   setSdfFontSize]   = useState(0.15)
+	const [sdfLetterSpacing, setSdfLetterSpacing] = useState(0)
 
 	// ── Unit switching — preserve visual size ──────────────────────────────
 
@@ -190,7 +212,7 @@ export default function Demo() {
 
 	const clearMesh = useCallback(() => { setMeshPositions(null); setMeshName(null); setMeshError(null) }, [])
 
-	const sceneShape = meshPositions ? "sphere" : shape
+	const domSceneShape = meshPositions ? "sphere" : shape
 
 	// ── Size label ─────────────────────────────────────────────────────────
 
@@ -202,171 +224,310 @@ export default function Demo() {
 	return (
 		<div className="w-full flex flex-col gap-6">
 
-			{/* 3D scene — drag-drop target */}
-			<div
-				className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-white/40" : ""}`}
-				style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
-				onDragOver={handleDragOver}
-				onDragLeave={handleDragLeave}
-				onDrop={handleDrop}
-			>
-				<WrapTypeScene
-					text={dText}
-					shape={sceneShape}
-					fill={fill}
-					fontSize={fontSizePx}
-					fontFamily={FONT_FAMILY}
-					fontWeight={FONT_WEIGHT}
-					radius={300}
-					color="rgba(220,210,255,0.9)"
-					autoRotate={autoRot}
-					autoRotateSpeed={0.5}
-					repeat={repeat}
-					characterCurve={curve}
-					positions={meshPositions ?? undefined}
-					style={{ width: "100%", height: "100%" }}
-				/>
-
-				{isDragging && (
-					<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.3)" }}>
-						<p className="text-white/80 text-sm tracking-widest uppercase">Drop to wrap</p>
-					</div>
-				)}
-				{meshLoading && (
-					<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.4)" }}>
-						<p className="text-white/60 text-xs tracking-widest uppercase">Loading mesh…</p>
-					</div>
-				)}
-				{meshName && !isDragging && (
-					<div className="absolute top-3 left-3 flex items-center gap-2">
-						<span className="text-xs opacity-40 font-mono">{meshName}</span>
-						<button onClick={clearMesh} className="text-xs opacity-25 hover:opacity-60 transition-opacity leading-none" aria-label="Clear custom mesh">✕</button>
-					</div>
-				)}
-				{!meshPositions && !isDragging && !meshLoading && (
-					<>
-						<input ref={fileInputRef} type="file" accept=".glb,.gltf,.obj" className="hidden" aria-label="Load 3D file" onChange={handleFileInput} />
-						<button
-							onClick={() => fileInputRef.current?.click()}
-							className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 text-xs opacity-30 hover:opacity-60 transition-opacity"
-							style={{ border: "1.5px dashed currentColor", borderRadius: "6px" }}
-						>
-							<UploadIcon />
-							Drop or click — .glb / .gltf / .obj
-						</button>
-					</>
-				)}
+			{/* Renderer tabs */}
+			<div className="flex gap-1 text-xs">
+				{(["dom", "sdf"] as RendererMode[]).map(mode => (
+					<button
+						key={mode}
+						onClick={() => setRenderer(mode)}
+						className={`px-3 py-1.5 rounded-full border transition-colors uppercase tracking-widest ${
+							renderer === mode
+								? "border-white/60 bg-white/10"
+								: "border-white/20 hover:border-white/40"
+						}`}
+					>
+						{mode === "dom" ? "DOM — CSS3D" : "SDF — WebGL"}
+					</button>
+				))}
+				<span className="ml-2 self-center opacity-30 text-xs">
+					{renderer === "dom"
+						? "Real HTML spans · variable fonts · composable with Liiift tools"
+						: "GPU text · troika SDF · native surface curvature"}
+				</span>
 			</div>
 
-			{meshError && (
-				<p className="text-xs opacity-70" style={{ color: "rgba(255,120,120,0.9)" }}>{meshError}</p>
+			{/* ── DOM TAB ─────────────────────────────────────────────────── */}
+			{renderer === "dom" && (
+				<>
+					{/* Scene — drag-drop target */}
+					<div
+						className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-white/40" : ""}`}
+						style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
+						onDragOver={handleDragOver}
+						onDragLeave={handleDragLeave}
+						onDrop={handleDrop}
+					>
+						<WrapTypeScene
+							text={dText}
+							shape={domSceneShape}
+							fill={fill}
+							fontSize={fontSizePx}
+							fontFamily={FONT_FAMILY}
+							fontWeight={FONT_WEIGHT}
+							radius={300}
+							color="rgba(220,210,255,0.9)"
+							autoRotate={autoRot}
+							autoRotateSpeed={0.5}
+							repeat={repeat}
+							characterCurve={curve}
+							positions={meshPositions ?? undefined}
+							style={{ width: "100%", height: "100%" }}
+						/>
+
+						{isDragging && (
+							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.3)" }}>
+								<p className="text-white/80 text-sm tracking-widest uppercase">Drop to wrap</p>
+							</div>
+						)}
+						{meshLoading && (
+							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.4)" }}>
+								<p className="text-white/60 text-xs tracking-widest uppercase">Loading mesh…</p>
+							</div>
+						)}
+						{meshName && !isDragging && (
+							<div className="absolute top-3 left-3 flex items-center gap-2">
+								<span className="text-xs opacity-40 font-mono">{meshName}</span>
+								<button onClick={clearMesh} className="text-xs opacity-25 hover:opacity-60 transition-opacity leading-none" aria-label="Clear custom mesh">✕</button>
+							</div>
+						)}
+						{!meshPositions && !isDragging && !meshLoading && (
+							<>
+								<input ref={fileInputRef} type="file" accept=".glb,.gltf,.obj" className="hidden" aria-label="Load 3D file" onChange={handleFileInput} />
+								<button
+									onClick={() => fileInputRef.current?.click()}
+									className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 text-xs opacity-30 hover:opacity-60 transition-opacity"
+									style={{ border: "1.5px dashed currentColor", borderRadius: "6px" }}
+								>
+									<UploadIcon />
+									Drop or click — .glb / .gltf / .obj
+								</button>
+							</>
+						)}
+					</div>
+
+					{meshError && (
+						<p className="text-xs opacity-70" style={{ color: "rgba(255,120,120,0.9)" }}>{meshError}</p>
+					)}
+
+					{/* DOM Controls */}
+					<div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs transition-opacity ${meshPositions ? "opacity-30 pointer-events-none select-none" : ""}`}>
+
+						{/* Shape */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Shape</span>
+							<div className="flex gap-2 flex-wrap">
+								{DOM_SHAPES.map(s => (
+									<button key={s.value} onClick={() => setShape(s.value)}
+										className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										{s.label}
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Fill */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Fill</span>
+							<div className="flex gap-2 flex-wrap">
+								{FILLS.map(f => (
+									<button key={f.value} onClick={() => setFill(f.value)}
+										className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										{f.label}
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Size — value slider + unit picker */}
+						<div className="flex flex-col gap-2 sm:col-span-2">
+							<div className="flex items-baseline justify-between">
+								<span className="uppercase tracking-widest opacity-50">Size — {sizeLabel}</span>
+								<div className="flex gap-1">
+									{SIZE_UNITS.map(u => (
+										<button
+											key={u}
+											onClick={() => changeUnit(u)}
+											className={`px-2 py-0.5 rounded text-xs transition-colors font-mono ${
+												sizeUnit === u ? "bg-white/15 opacity-100" : "opacity-30 hover:opacity-60"
+											}`}
+										>
+											{u}
+										</button>
+									))}
+								</div>
+							</div>
+							<input
+								type="range"
+								min={cfg.min}
+								max={cfg.max}
+								step={cfg.step}
+								value={sizeValue}
+								onChange={e => setSizeValue(Number(e.target.value))}
+								aria-label={`Font size in ${sizeUnit}`}
+								className="w-full accent-white/60"
+							/>
+						</div>
+
+						{/* Auto-rotate */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Rotation</span>
+							<button onClick={() => setAutoRot(r => !r)}
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								{autoRot ? "Auto-rotating" : "Paused"}
+							</button>
+						</div>
+
+						{/* Repeat */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Repeat</span>
+							<button onClick={() => setRepeat(r => !r)}
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								{repeat ? "Tiling" : "Once"}
+							</button>
+						</div>
+
+						{/* Character curve */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Character curve — {Math.round(curve * 100)}%</span>
+							<input
+								type="range" min={0} max={100} step={1} value={Math.round(curve * 100)}
+								onChange={e => setCurve(Number(e.target.value) / 100)}
+								aria-label="Character curve amount"
+								className="w-full accent-white/60"
+							/>
+						</div>
+
+						{/* Text */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Text</span>
+							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+								aria-label="Text to wrap on the surface"
+								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
+						</div>
+
+					</div>
+
+					<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
+						Drag to orbit. Scroll to zoom. Characters are measured with canvas
+						measureText and justified to fill each row exactly — no fixed tracking.
+						The flag animates each frame with no DOM writes.
+					</p>
+				</>
 			)}
 
-			{/* Controls */}
-			<div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs transition-opacity ${meshPositions ? "opacity-30 pointer-events-none select-none" : ""}`}>
-
-				{/* Shape */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Shape</span>
-					<div className="flex gap-2 flex-wrap">
-						{SHAPES.map(s => (
-							<button key={s.value} onClick={() => setShape(s.value)}
-								className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
-								{s.label}
-							</button>
-						))}
+			{/* ── SDF TAB ─────────────────────────────────────────────────── */}
+			{renderer === "sdf" && (
+				<>
+					{/* Canvas */}
+					<div
+						className="rounded-xl overflow-hidden"
+						style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
+					>
+						<Suspense fallback={
+							<div className="w-full h-full flex items-center justify-center">
+								<span className="text-xs opacity-30 tracking-widest uppercase">Loading WebGL…</span>
+							</div>
+						}>
+							<SDFCanvas
+								text={dText}
+								shape={sdfShape}
+								autoRotate={sdfAutoRot}
+								curvatureTracking={sdfCurvatureTracking}
+								color={sdfColor}
+								fontSize={sdfFontSize}
+								letterSpacing={sdfLetterSpacing}
+							/>
+						</Suspense>
 					</div>
-				</div>
 
-				{/* Fill */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Fill</span>
-					<div className="flex gap-2 flex-wrap">
-						{FILLS.map(f => (
-							<button key={f.value} onClick={() => setFill(f.value)}
-								className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
-								{f.label}
-							</button>
-						))}
-					</div>
-				</div>
+					{/* SDF Controls */}
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
 
-				{/* Size — value slider + unit picker */}
-				<div className="flex flex-col gap-2 sm:col-span-2">
-					<div className="flex items-baseline justify-between">
-						<span className="uppercase tracking-widest opacity-50">Size — {sizeLabel}</span>
-						<div className="flex gap-1">
-							{SIZE_UNITS.map(u => (
-								<button
-									key={u}
-									onClick={() => changeUnit(u)}
-									className={`px-2 py-0.5 rounded text-xs transition-colors font-mono ${
-										sizeUnit === u
-											? "bg-white/15 opacity-100"
-											: "opacity-30 hover:opacity-60"
-									}`}
-								>
-									{u}
-								</button>
-							))}
+						{/* Shape */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Shape</span>
+							<div className="flex gap-2 flex-wrap">
+								{SDF_SHAPES.map(s => (
+									<button key={s.value} onClick={() => setSdfShape(s.value)}
+										className={`px-3 py-1.5 rounded-full border transition-colors ${sdfShape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										{s.label}
+									</button>
+								))}
+							</div>
 						</div>
+
+						{/* Auto-rotate */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Rotation</span>
+							<button onClick={() => setSdfAutoRot(r => !r)}
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfAutoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								{sdfAutoRot ? "Auto-rotating" : "Paused"}
+							</button>
+						</div>
+
+						{/* Curvature tracking */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Curvature tracking</span>
+							<button onClick={() => setSdfCurvatureTracking(v => !v)}
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfCurvatureTracking ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								{sdfCurvatureTracking ? "On" : "Off"}
+							</button>
+						</div>
+
+						{/* Scale */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Scale — {sdfFontSize.toFixed(3)} u</span>
+							<input
+								type="range" min={0.04} max={0.4} step={0.01} value={sdfFontSize}
+								onChange={e => setSdfFontSize(Number(e.target.value))}
+								aria-label="SDF font size in Three.js units"
+								className="w-full accent-white/60"
+							/>
+						</div>
+
+						{/* Letter spacing */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Tracking — {sdfLetterSpacing.toFixed(3)} u</span>
+							<input
+								type="range" min={-0.05} max={0.2} step={0.005} value={sdfLetterSpacing}
+								onChange={e => setSdfLetterSpacing(Number(e.target.value))}
+								aria-label="SDF letter spacing in Three.js units"
+								className="w-full accent-white/60"
+							/>
+						</div>
+
+						{/* Color */}
+						<div className="flex flex-col gap-2">
+							<span className="uppercase tracking-widest opacity-50">Color</span>
+							<div className="flex items-center gap-3">
+								<input
+									type="color" value={sdfColor}
+									onChange={e => setSdfColor(e.target.value)}
+									aria-label="SDF text color"
+									className="w-8 h-8 rounded cursor-pointer bg-transparent border border-white/20"
+								/>
+								<span className="font-mono opacity-50">{sdfColor}</span>
+							</div>
+						</div>
+
+						{/* Text */}
+						<div className="flex flex-col gap-2 sm:col-span-2">
+							<span className="uppercase tracking-widest opacity-50">Text</span>
+							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+								aria-label="Text to wrap on the surface"
+								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
+						</div>
+
 					</div>
-					<input
-						type="range"
-						min={cfg.min}
-						max={cfg.max}
-						step={cfg.step}
-						value={sizeValue}
-						onChange={e => setSizeValue(Number(e.target.value))}
-						aria-label={`Font size in ${sizeUnit}`}
-						className="w-full accent-white/60"
-					/>
-				</div>
 
-				{/* Auto-rotate */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Rotation</span>
-					<button onClick={() => setAutoRot(r => !r)}
-						className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
-						{autoRot ? "Auto-rotating" : "Paused"}
-					</button>
-				</div>
-
-				{/* Repeat */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Repeat</span>
-					<button onClick={() => setRepeat(r => !r)}
-						className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
-						{repeat ? "Tiling" : "Once"}
-					</button>
-				</div>
-
-				{/* Character curve */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Character curve — {Math.round(curve * 100)}%</span>
-					<input
-						type="range" min={0} max={100} step={1} value={Math.round(curve * 100)}
-						onChange={e => setCurve(Number(e.target.value) / 100)}
-						aria-label="Character curve amount"
-						className="w-full accent-white/60"
-					/>
-				</div>
-
-				{/* Text */}
-				<div className="flex flex-col gap-2">
-					<span className="uppercase tracking-widest opacity-50">Text</span>
-					<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
-						aria-label="Text to wrap on the surface"
-						className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
-				</div>
-
-			</div>
-
-			<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
-				Drag to orbit. Scroll to zoom. Characters are measured with canvas
-				measureText and justified to fill each row exactly — no fixed tracking.
-				The flag animates each frame with no DOM writes.
-			</p>
+					<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
+						SDF mode uses troika-three-text for GPU-rendered anti-aliased text
+						inside a WebGL canvas. Each word is a separate mesh curved to the
+						surface via troika&apos;s native <code className="font-mono">curveRadius</code> property.
+						Unlike DOM mode, SDF text can receive lighting, shadows, and post-processing.
+					</p>
+				</>
+			)}
 		</div>
 	)
 }

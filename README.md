@@ -141,4 +141,4 @@ OrbitControls are wired to a transparent overlay `<div>` so that pointer events 
 
 ---
 
-Current version: 0.0.8
+Current version: 0.0.9
