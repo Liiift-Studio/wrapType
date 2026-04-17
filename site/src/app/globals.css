@@ -1,46 +1,10 @@
+/* Per-tool theme for wrapType — base styles live in base.css (synced from type-tools/shared/styles/). */
 @import "tailwindcss";
-
-@font-face {
-	font-family: "Merriweather";
-	src: url("/fonts/Merriweather.woff2") format("woff2");
-	font-weight: 100 900;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "Merriweather";
-	src: url("/fonts/Merriweather-Italic.woff2") format("woff2");
-	font-weight: 100 900;
-	font-style: italic;
-	font-display: swap;
-}
+@import "./base.css";
 
 :root {
 	--background: hsl(240, 18%, 7%);
-	--foreground: #eeeeff;
+	--foreground: #eeeeff; /* cooler tint for wrapType */
 	--accent: rgba(160, 140, 255, 0.85);
 	--font-sans: var(--font-inter), sans-serif;
-	--font-merriweather: "Merriweather";
-}
-
-@theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-}
-
-button, [role="button"] {
-	cursor: pointer;
-}
-
-* {
-	box-sizing: border-box;
-}
-
-body {
-	background: var(--background);
-	color: var(--foreground);
-	font-family: var(--font-sans);
-	overflow-anchor: none;
-	text-rendering: optimizeLegibility;
 }

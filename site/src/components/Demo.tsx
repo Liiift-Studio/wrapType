@@ -149,8 +149,8 @@ export default function Demo() {
 	const [curve,   setCurve]   = useState(0)
 
 	// Size in selected unit
-	const [sizeValue, setSizeValue] = useState(144)
-	const [sizeUnit,  setSizeUnit]  = useState<SizeUnit>("px")
+	const [sizeValue, setSizeValue] = useState(8)
+	const [sizeUnit,  setSizeUnit]  = useState<SizeUnit>("vw")
 	const fontSizePx = toPx(sizeValue, sizeUnit)
 
 	// 3D mesh drop state
