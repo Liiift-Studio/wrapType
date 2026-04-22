@@ -1,5 +1,7 @@
 # wrapType
 
+[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fwraptype.svg)](https://www.npmjs.com/package/@liiift-studio/wraptype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
+
 Real DOM text on any 3D surface — sphere, cylinder, torus, or plane.
 
 wrapType uses Three.js's CSS3DRenderer to distribute HTML text elements across the geometry of a 3D surface. Each character is a real DOM element oriented along the surface normal, which means variable fonts, CSS animations, hover states, and every other Liiift tool compose naturally — no canvas, no textures.
