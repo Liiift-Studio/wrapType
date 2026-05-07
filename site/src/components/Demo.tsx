@@ -565,7 +565,7 @@ export default function Demo() {
 					<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
 						SDF mode uses troika-three-text for GPU-rendered anti-aliased text
 						inside a WebGL canvas. Each word is a separate mesh curved to the
-						surface via troika&apos;s native <code className="font-mono">curveRadius</code> property.
+						surface via troika&rsquo;s native <code className="font-mono">curveRadius</code> property.
 						Unlike DOM mode, SDF text can receive lighting, shadows, and post-processing.
 					</p>
 				</>

@@ -39,7 +39,7 @@ export default function Home() {
 				<p className="text-base opacity-60 leading-relaxed max-w-lg">
 					CSS transforms can fake 3D. wrapType does it properly — distributing
 					real DOM text elements across the surface of a sphere, cylinder, torus,
-					or flat plane using Three.js&apos;s CSS3DRenderer. Variable fonts, CSS
+					or flat plane using Three.js&rsquo;s CSS3DRenderer. Variable fonts, CSS
 					animations, and every other Liiift tool compose naturally because the
 					characters are actual HTML, not canvas pixels.
 				</p>
@@ -60,7 +60,7 @@ export default function Home() {
 					<div className="flex flex-col gap-3">
 						<p className="font-semibold opacity-100 text-base">Real DOM on every surface</p>
 						<p>
-							Three.js&apos;s CSS3DRenderer places HTML elements in 3D space using
+							Three.js&rsquo;s CSS3DRenderer places HTML elements in 3D space using
 							CSS <code className="text-xs font-mono">perspective</code> and
 							<code className="text-xs font-mono"> matrix3d</code> transforms.
 							Each character is its own element, oriented so its face points along
