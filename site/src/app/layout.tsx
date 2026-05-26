@@ -10,21 +10,21 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-	title: "wrapType — Live DOM text on any 3D surface",
+	title: "wrapType — Real DOM text on any 3D surface | Type Tools",
 	icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
-	description: "Text that wraps a 3D surface — sphere, cylinder, torus, or your own mesh. Real DOM characters, orbit camera, surface and silhouette modes.",
-	keywords: ["typography", "3d", "three.js", "mesh", "surface", "css3d", "text-wrap", "webgl", "TypeScript", "npm", "react"],
+	description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh using Three.js CSS3DRenderer. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
+	keywords: ["typography", "3d", "three.js", "mesh", "surface", "css3d", "text-wrap", "webgl", "TypeScript", "npm", "react", "variable font", "css3drenderer", "orbit camera", "wraptype", "liiift"],
 	openGraph: {
-		title: "wrapType — Live DOM text on any 3D surface",
-		description: "Real DOM text flowing across a sphere, cylinder, torus, or custom mesh. Surface and silhouette modes, orbit camera.",
+		title: "wrapType — Real DOM text on any 3D surface | Type Tools",
+		description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
 		url: "https://wraptype.com",
 		siteName: "wrapType",
 		type: "website",
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "wrapType — Live DOM text on any 3D surface",
-		description: "Real DOM text flowing across a 3D surface. Surface and silhouette modes.",
+		title: "wrapType — Real DOM text on any 3D surface | Type Tools",
+		description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh. Variable fonts and CSS animations compose naturally — no canvas, no textures.",
 	},
 	metadataBase: new URL("https://wraptype.com"),
 }

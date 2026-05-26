@@ -78,12 +78,13 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Four fill modes</p>
+						<p className="font-semibold opacity-100 text-base">Five fill modes</p>
 						<p>
 							<strong>Cover</strong> tiles the entire surface. <strong>Flow</strong>{" "}
 							runs a single band around the circumference or equator.{" "}
 							<strong>Full-width</strong> fills the widest pass. <strong>Full-height</strong>{" "}
-							runs pole-to-pole. Text always repeats to fill the chosen region.
+							runs pole-to-pole. <strong>Pattern</strong> repeats text as a tileable
+							grid across the surface.
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
@@ -215,16 +216,23 @@ scene.destroy()`} />
 							</thead>
 							<tbody className="opacity-70">
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">text</td><td className="py-2 pr-6">—</td><td className="py-2">The string to distribute across the surface. Repeats to fill.</td></tr>
-								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">shape</td><td className="py-2 pr-6">&apos;sphere&apos;</td><td className="py-2"><code className="font-mono">&apos;sphere&apos;</code> · <code className="font-mono">&apos;cylinder&apos;</code> · <code className="font-mono">&apos;torus&apos;</code> · <code className="font-mono">&apos;plane&apos;</code></td></tr>
-								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">fill</td><td className="py-2 pr-6">&apos;cover&apos;</td><td className="py-2"><code className="font-mono">&apos;cover&apos;</code> · <code className="font-mono">&apos;flow&apos;</code> · <code className="font-mono">&apos;full-width&apos;</code> · <code className="font-mono">&apos;full-height&apos;</code></td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">shape</td><td className="py-2 pr-6">&apos;sphere&apos;</td><td className="py-2"><code className="font-mono">&apos;sphere&apos;</code> · <code className="font-mono">&apos;cylinder&apos;</code> · <code className="font-mono">&apos;torus&apos;</code> · <code className="font-mono">&apos;plane&apos;</code> · <code className="font-mono">&apos;stool&apos;</code> · <code className="font-mono">&apos;flag&apos;</code></td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">mode</td><td className="py-2 pr-6">&apos;surface&apos;</td><td className="py-2"><code className="font-mono">&apos;surface&apos;</code> — characters sit on the geometry · <code className="font-mono">&apos;silhouette&apos;</code> — characters follow the outline contour</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">fill</td><td className="py-2 pr-6">&apos;cover&apos;</td><td className="py-2"><code className="font-mono">&apos;cover&apos;</code> · <code className="font-mono">&apos;flow&apos;</code> · <code className="font-mono">&apos;full-width&apos;</code> · <code className="font-mono">&apos;full-height&apos;</code> · <code className="font-mono">&apos;pattern&apos;</code></td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">fontSize</td><td className="py-2 pr-6">14</td><td className="py-2">Character font size in px.</td></tr>
-								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">color</td><td className="py-2 pr-6">&apos;#fff&apos;</td><td className="py-2">CSS color applied to every character element.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">fontFamily</td><td className="py-2 pr-6">—</td><td className="py-2">CSS font-family override applied to each character span.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">fontWeight</td><td className="py-2 pr-6">&apos;normal&apos;</td><td className="py-2">CSS font-weight applied to each character span.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">color</td><td className="py-2 pr-6">&apos;white&apos;</td><td className="py-2">CSS color applied to every character element.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">radius</td><td className="py-2 pr-6">300</td><td className="py-2">Surface radius in scene units.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">height</td><td className="py-2 pr-6">radius × 2</td><td className="py-2">Cylinder or plane height in scene units.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">autoRotate</td><td className="py-2 pr-6">false</td><td className="py-2">Continuously rotate the scene.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">autoRotateSpeed</td><td className="py-2 pr-6">1.0</td><td className="py-2">Rotation speed multiplier.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">camera</td><td className="py-2 pr-6">&apos;orbit&apos;</td><td className="py-2"><code className="font-mono">&apos;orbit&apos;</code> (drag to rotate, scroll to zoom) · <code className="font-mono">&apos;fixed&apos;</code></td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">cameraPosition</td><td className="py-2 pr-6">[0, 0, 700]</td><td className="py-2">Initial camera position [x, y, z] in scene units.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">charAdvanceRatio</td><td className="py-2 pr-6">0.62</td><td className="py-2">Fraction of fontSize used as character advance width.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">lineHeightRatio</td><td className="py-2 pr-6">1.4</td><td className="py-2">Line height multiplier relative to fontSize.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">repeat</td><td className="py-2 pr-6">true</td><td className="py-2">When false, text is placed exactly once without tiling.</td></tr>
+								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">characterCurve</td><td className="py-2 pr-6">0</td><td className="py-2">Bend characters to follow surface curvature. 0 = flat, 1 = full bend.</td></tr>
 							</tbody>
 						</table>
 					</div>
