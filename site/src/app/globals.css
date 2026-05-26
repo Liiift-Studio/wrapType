@@ -3,7 +3,7 @@
 @import "./base.css";
 
 :root {
-	--background: hsl(255, 55%, 9%);
+	--background: hsl(40, 55%, 9%);
 	--foreground: #eeeeff; /* cooler tint for wrapType */
 	--accent: rgba(160, 140, 255, 0.85);
 	--font-sans: var(--font-inter), sans-serif;
