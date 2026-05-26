@@ -28,6 +28,7 @@ class SdfErrorBoundary extends Component<{ children: ReactNode }, SdfErrorBounda
 					<p className="text-xs opacity-40 tracking-widest uppercase">WebGL error</p>
 					<button
 						onClick={() => this.reset()}
+						title="Restart the WebGL canvas after an error"
 						className="text-xs px-4 py-2 rounded-full border border-white/20 hover:border-white/40 transition-colors"
 					>
 						Reload canvas
@@ -100,27 +101,27 @@ const DEFAULT_FILL  = "cover" as WrapTypeFill
 const FONT_FAMILY   = "Inter, sans-serif"
 const FONT_WEIGHT   = 900
 
-const DOM_SHAPES: { value: WrapTypeShape; label: string }[] = [
-	{ value: "flag",     label: "Flag"     },
-	{ value: "stool",    label: "Stool"    },
-	{ value: "sphere",   label: "Sphere"   },
-	{ value: "cylinder", label: "Cylinder" },
-	{ value: "torus",    label: "Torus"    },
-	{ value: "plane",    label: "Plane"    },
+const DOM_SHAPES: { value: WrapTypeShape; label: string; title: string }[] = [
+	{ value: "flag",     label: "Flag",     title: "Animate text across a waving flag surface" },
+	{ value: "stool",    label: "Stool",    title: "Wrap text around a stool-shaped mesh" },
+	{ value: "sphere",   label: "Sphere",   title: "Wrap text evenly around a sphere" },
+	{ value: "cylinder", label: "Cylinder", title: "Wrap text around the curved side of a cylinder" },
+	{ value: "torus",    label: "Torus",    title: "Wrap text around the inner and outer surface of a torus (donut)" },
+	{ value: "plane",    label: "Plane",    title: "Lay text flat across a plane surface" },
 ]
 
-const SDF_SHAPES: { value: WrapTypeShape; label: string }[] = [
-	{ value: "sphere",   label: "Sphere"   },
-	{ value: "cylinder", label: "Cylinder" },
-	{ value: "torus",    label: "Torus"    },
-	{ value: "plane",    label: "Plane"    },
+const SDF_SHAPES: { value: WrapTypeShape; label: string; title: string }[] = [
+	{ value: "sphere",   label: "Sphere",   title: "Wrap GPU-rendered text around a sphere" },
+	{ value: "cylinder", label: "Cylinder", title: "Wrap GPU-rendered text around the curved side of a cylinder" },
+	{ value: "torus",    label: "Torus",    title: "Wrap GPU-rendered text around the surface of a torus (donut)" },
+	{ value: "plane",    label: "Plane",    title: "Render GPU text flat across a plane surface" },
 ]
 
-const FILLS: { value: WrapTypeFill; label: string }[] = [
-	{ value: "cover",       label: "Cover"       },
-	{ value: "flow",        label: "Flow"        },
-	{ value: "full-width",  label: "Full Width"  },
-	{ value: "full-height", label: "Full Height" },
+const FILLS: { value: WrapTypeFill; label: string; title: string }[] = [
+	{ value: "cover",       label: "Cover",       title: "Scale text to cover the full surface area of the mesh" },
+	{ value: "flow",        label: "Flow",        title: "Let text flow naturally across the surface at its current size" },
+	{ value: "full-width",  label: "Full Width",  title: "Stretch text to fill the full width of the mesh" },
+	{ value: "full-height", label: "Full Height", title: "Stretch text to fill the full height of the mesh" },
 ]
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -257,6 +258,7 @@ export default function Demo() {
 			<div className="flex w-full rounded-lg overflow-hidden text-xs" style={{ border: "1px solid rgba(255,255,255,0.12)" }}>
 				<button
 					onClick={() => setRenderer("dom")}
+					title="Switch to the DOM renderer — text wraps as real HTML spans using CSS3DRenderer"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
 					style={{
 						background: renderer === "dom" ? "rgba(255,255,255,0.08)" : "transparent",
@@ -272,6 +274,7 @@ export default function Demo() {
 				</button>
 				<button
 					onClick={() => setRenderer("sdf")}
+					title="Switch to the SDF renderer — text is GPU-rendered inside a WebGL canvas using troika-three-text"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
 					style={{
 						background: renderer === "sdf" ? "rgba(255,255,255,0.08)" : "transparent",
@@ -327,7 +330,7 @@ export default function Demo() {
 						{meshName && !isDragging && (
 							<div className="absolute top-3 left-3 flex items-center gap-2">
 								<span className="text-xs opacity-40 font-mono">{meshName}</span>
-								<button onClick={clearMesh} className="text-xs opacity-25 hover:opacity-60 transition-opacity leading-none" aria-label="Clear custom mesh">✕</button>
+								<button onClick={clearMesh} className="text-xs opacity-25 hover:opacity-60 transition-opacity leading-none" aria-label="Clear custom mesh" title="Remove the custom 3D mesh and return to the built-in shape selector">✕</button>
 							</div>
 						)}
 						{!meshPositions && !isDragging && !meshLoading && (
@@ -335,6 +338,7 @@ export default function Demo() {
 								<input ref={fileInputRef} type="file" accept=".glb,.gltf,.obj" className="hidden" aria-label="Load 3D file" onChange={handleFileInput} />
 								<button
 									onClick={() => fileInputRef.current?.click()}
+									title="Load a custom 3D mesh (.glb, .gltf, or .obj) — text will wrap around its surface"
 									className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 text-xs opacity-30 hover:opacity-60 transition-opacity"
 									style={{ border: "1.5px dashed currentColor", borderRadius: "6px" }}
 								>
@@ -358,6 +362,7 @@ export default function Demo() {
 							<div className="flex gap-2 flex-wrap">
 								{DOM_SHAPES.map(s => (
 									<button key={s.value} onClick={() => setShape(s.value)}
+										title={s.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{s.label}
 									</button>
@@ -371,6 +376,7 @@ export default function Demo() {
 							<div className="flex gap-2 flex-wrap">
 								{FILLS.map(f => (
 									<button key={f.value} onClick={() => setFill(f.value)}
+										title={f.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{f.label}
 									</button>
@@ -387,6 +393,7 @@ export default function Demo() {
 										<button
 											key={u}
 											onClick={() => changeUnit(u)}
+											title={`Set font size unit to ${u}`}
 											className={`px-2 py-0.5 rounded text-xs transition-colors font-mono ${
 												sizeUnit === u ? "bg-white/15 opacity-100" : "opacity-30 hover:opacity-60"
 											}`}
@@ -404,6 +411,7 @@ export default function Demo() {
 								value={sizeValue}
 								onChange={e => setSizeValue(Number(e.target.value))}
 								aria-label={`Font size in ${sizeUnit}`}
+								title={`Adjust the font size of the wrapped text (currently ${sizeLabel})`}
 								className="w-full accent-white/60"
 							/>
 						</div>
@@ -412,6 +420,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Rotation</span>
 							<button onClick={() => setAutoRot(r => !r)}
+								title={autoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{autoRot ? "Auto-rotating" : "Paused"}
 							</button>
@@ -421,6 +430,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Repeat</span>
 							<button onClick={() => setRepeat(r => !r)}
+								title={repeat ? "Stop tiling — show the text string only once around the mesh" : "Tile the text string repeatedly to fill the entire surface"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{repeat ? "Tiling" : "Once"}
 							</button>
@@ -433,6 +443,7 @@ export default function Demo() {
 								type="range" min={0} max={100} step={1} value={Math.round(curve * 100)}
 								onChange={e => setCurve(Number(e.target.value) / 100)}
 								aria-label="Character curve amount"
+								title="Rotate each character to follow the curvature of the mesh surface"
 								className="w-full accent-white/60"
 							/>
 						</div>
@@ -442,6 +453,7 @@ export default function Demo() {
 							<span className="uppercase tracking-widest opacity-50">Text</span>
 							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
 								aria-label="Text to wrap on the surface"
+								title="The text string to wrap around the 3D mesh surface"
 								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
 						</div>
 
@@ -491,6 +503,7 @@ export default function Demo() {
 							<div className="flex gap-2 flex-wrap">
 								{SDF_SHAPES.map(s => (
 									<button key={s.value} onClick={() => setSdfShape(s.value)}
+										title={s.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${sdfShape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{s.label}
 									</button>
@@ -502,6 +515,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Rotation</span>
 							<button onClick={() => setSdfAutoRot(r => !r)}
+								title={sdfAutoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfAutoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{sdfAutoRot ? "Auto-rotating" : "Paused"}
 							</button>
@@ -511,6 +525,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Curvature tracking</span>
 							<button onClick={() => setSdfCurvatureTracking(v => !v)}
+								title={sdfCurvatureTracking ? "Disable curvature tracking — text will lay flat rather than conforming to the surface normal" : "Enable curvature tracking — text bends to follow the exact curvature of the mesh surface"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfCurvatureTracking ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{sdfCurvatureTracking ? "On" : "Off"}
 							</button>
@@ -523,6 +538,7 @@ export default function Demo() {
 								type="range" min={0.04} max={0.4} step={0.01} value={sdfFontSize}
 								onChange={e => setSdfFontSize(Number(e.target.value))}
 								aria-label="SDF font size in Three.js units"
+								title="Adjust the size of the GPU-rendered text in Three.js world units (mesh radius is 2 units)"
 								className="w-full accent-white/60"
 							/>
 						</div>
@@ -534,6 +550,7 @@ export default function Demo() {
 								type="range" min={-0.05} max={0.2} step={0.005} value={sdfLetterSpacing}
 								onChange={e => setSdfLetterSpacing(Number(e.target.value))}
 								aria-label="SDF letter spacing in Three.js units"
+								title="Adjust the spacing between characters in Three.js world units — negative values tighten, positive values open up the tracking"
 								className="w-full accent-white/60"
 							/>
 						</div>
@@ -546,6 +563,7 @@ export default function Demo() {
 									type="color" value={sdfColor}
 									onChange={e => setSdfColor(e.target.value)}
 									aria-label="SDF text color"
+									title="Choose the fill color for the GPU-rendered text"
 									className="w-8 h-8 rounded cursor-pointer bg-transparent border border-white/20"
 								/>
 								<span className="font-mono opacity-50">{sdfColor}</span>
@@ -557,6 +575,7 @@ export default function Demo() {
 							<span className="uppercase tracking-widest opacity-50">Text</span>
 							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
 								aria-label="Text to wrap on the surface"
+								title="The text string to wrap around the 3D mesh surface"
 								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
 						</div>
 
