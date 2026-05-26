@@ -6,6 +6,7 @@ import ToolDirectory from "@/components/ToolDirectory"
 import { version } from "../../../package.json"
 import { version as siteVersion } from "../../package.json"
 import SiteFooter from "../components/SiteFooter"
+import { MagnetChar } from "@liiift-studio/magnettype"
 
 export default function Home() {
 	return (
@@ -16,8 +17,8 @@ export default function Home() {
 				<div className="flex flex-col gap-2">
 					<p className="text-xs uppercase tracking-widest opacity-50">wrapType</p>
 					<h1 className="text-4xl lg:text-8xl xl:text-9xl" style={{ fontFamily: "var(--font-merriweather), serif", fontVariationSettings: '"wght" 300, "opsz" 144', lineHeight: "1.05em" }}>
-						Text on a surface,<br />
-						<span style={{ opacity: 0.5, fontStyle: "italic" }}>still real DOM.</span>
+						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }}>Text on a surface,</MagnetChar><br />
+						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }} style={{ opacity: 0.5, fontStyle: "italic" }}>still real DOM.</MagnetChar>
 					</h1>
 				</div>
 				<div className="flex items-center gap-4">
