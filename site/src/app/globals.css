@@ -3,7 +3,7 @@
 @import "./base.css";
 
 :root {
-	--background: oklch(0.10 0.0530 40);
+	--background: oklch(0.17 0.0800 40);
 	--foreground: oklch(0.93 0.03 40); /* cooler tint for wrapType */
 	--accent: rgba(160, 140, 255, 0.85);
 	--font-sans: var(--font-inter), sans-serif;
