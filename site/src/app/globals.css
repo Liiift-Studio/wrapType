@@ -3,8 +3,8 @@
 @import "./base.css";
 
 :root {
-	--background: hsl(40, 55%, 9%);
-	--foreground: hsl(40, 15%, 92%); /* cooler tint for wrapType */
+	--background: oklch(0.10 0.12 40);
+	--foreground: oklch(0.93 0.03 40); /* cooler tint for wrapType */
 	--accent: rgba(160, 140, 255, 0.85);
 	--font-sans: var(--font-inter), sans-serif;
 }
