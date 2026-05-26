@@ -5,6 +5,7 @@
 import { useEffect, useRef } from 'react'
 import { getCharPositions } from '../core/geometry'
 import { createWrapScene } from '../core/scene'
+import type { SceneHandle } from '../core/scene'
 import type { WrapTypeOptions, CharPosition } from '../core/types'
 
 /** Return value of useWrapType */
@@ -24,16 +25,26 @@ export interface WrapTypeHandle {
  * return <div ref={ref} style={{ width: '100%', height: '500px' }} />
  */
 export function useWrapType(opts: WrapTypeOptions): WrapTypeHandle {
-	const ref = useRef<HTMLDivElement>(null)
+	const ref       = useRef<HTMLDivElement>(null)
+	const handleRef = useRef<SceneHandle | null>(null)
+	const optsRef   = useRef(opts)
+	optsRef.current = opts
 
-	useEffect(() => {
+	function mount() {
 		const container = ref.current
 		if (!container || typeof window === 'undefined') return
+		handleRef.current?.destroy()
+		const positions: CharPosition[] = getCharPositions(optsRef.current)
+		handleRef.current = createWrapScene(container, positions, optsRef.current)
+	}
 
-		const positions: CharPosition[] = getCharPositions(opts)
-		const handle = createWrapScene(container, positions, opts)
-
-		return () => handle.destroy()
+	useEffect(() => {
+		mount()
+		return () => {
+			handleRef.current?.destroy()
+			handleRef.current = null
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		opts.text,
 		opts.shape,
@@ -48,6 +59,13 @@ export function useWrapType(opts: WrapTypeOptions): WrapTypeHandle {
 		opts.autoRotateSpeed,
 		opts.camera,
 	])
+
+	// Re-mount after fonts load — measureCharWidths uses Canvas API which reads
+	// fallback font metrics if called before the variable font finishes loading.
+	useEffect(() => {
+		document.fonts?.ready?.then(mount)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
 	return { ref }
 }
