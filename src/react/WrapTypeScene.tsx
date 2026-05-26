@@ -5,6 +5,7 @@
 import { useEffect, useRef } from 'react'
 import { getCharPositions } from '../core/geometry'
 import { createWrapScene } from '../core/scene'
+import type { SceneHandle } from '../core/scene'
 import type { WrapTypeOptions, CharPosition } from '../core/types'
 
 /** Props for WrapTypeScene — all WrapTypeOptions plus optional className / style */
@@ -44,15 +45,27 @@ export function WrapTypeScene({
 	...opts
 }: WrapTypeSceneProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
+	const handleRef    = useRef<SceneHandle | null>(null)
+	const optsRef      = useRef(opts)
+	optsRef.current = opts
+	const customPositionsRef = useRef(customPositions)
+	customPositionsRef.current = customPositions
 
-	useEffect(() => {
+	function mount() {
 		const container = containerRef.current
 		if (!container || typeof window === 'undefined') return
+		handleRef.current?.destroy()
+		const pos = customPositionsRef.current ?? getCharPositions(optsRef.current)
+		handleRef.current = createWrapScene(container, pos, optsRef.current)
+	}
 
-		const pos    = customPositions ?? getCharPositions(opts)
-		const handle = createWrapScene(container, pos, opts)
-
-		return () => handle.destroy()
+	useEffect(() => {
+		mount()
+		return () => {
+			handleRef.current?.destroy()
+			handleRef.current = null
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		opts.text,
 		opts.shape,
@@ -71,6 +84,13 @@ export function WrapTypeScene({
 		opts.characterCurve,
 		customPositions,
 	])
+
+	// Re-mount after fonts load — getCharPositions uses Canvas API which reads
+	// fallback font metrics if called before the variable font finishes loading.
+	useEffect(() => {
+		document.fonts?.ready?.then(mount)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
 	return (
 		<div
