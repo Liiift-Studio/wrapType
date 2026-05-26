@@ -62,8 +62,11 @@ export function useWrapType(opts: WrapTypeOptions): WrapTypeHandle {
 
 	// Re-mount after fonts load — measureCharWidths uses Canvas API which reads
 	// fallback font metrics if called before the variable font finishes loading.
+	// Guard with a cancelled flag so mount() is not called after unmount.
 	useEffect(() => {
-		document.fonts?.ready?.then(mount)
+		let cancelled = false
+		document.fonts?.ready?.then(() => { if (!cancelled) mount() })
+		return () => { cancelled = true }
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 

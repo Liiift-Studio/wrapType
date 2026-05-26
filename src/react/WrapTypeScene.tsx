@@ -87,8 +87,11 @@ export function WrapTypeScene({
 
 	// Re-mount after fonts load — getCharPositions uses Canvas API which reads
 	// fallback font metrics if called before the variable font finishes loading.
+	// Guard with a cancelled flag so mount() is not called after unmount.
 	useEffect(() => {
-		document.fonts?.ready?.then(mount)
+		let cancelled = false
+		document.fonts?.ready?.then(() => { if (!cancelled) mount() })
+		return () => { cancelled = true }
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -96,6 +99,7 @@ export function WrapTypeScene({
 		<div
 			ref={containerRef}
 			className={className}
+			aria-hidden="true"
 			style={{ width: '100%', height: '100%', ...style }}
 		/>
 	)
