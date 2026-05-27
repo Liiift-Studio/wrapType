@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 		description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh. Variable fonts and CSS animations compose naturally — no canvas, no textures.",
 	},
 	metadataBase: new URL("https://wraptype.com"),
+	alternates: { canonical: "https://wraptype.com" },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
