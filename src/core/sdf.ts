@@ -190,18 +190,15 @@ export function updateSDFText(
 	options: WrapTypeMeshOptions,
 	radius = 1.0,
 ): void {
-	// Dispose all existing troika Text children
+	// Dispose all existing troika Text children and remove them from the group
 	const toDispose: Text[] = []
 	group.traverse((obj) => {
 		if (obj instanceof Text) toDispose.push(obj)
 	})
 	toDispose.forEach((t) => {
 		t.dispose()
-		t.parent?.remove(t)
+		group.remove(t)
 	})
-	while (group.children.length > 0) {
-		group.remove(group.children[0])
-	}
 
 	// Rebuild and reparent children into existing group
 	const { group: next } = createSDFText(shape, options, radius)

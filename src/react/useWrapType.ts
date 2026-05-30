@@ -52,12 +52,15 @@ export function useWrapType(opts: WrapTypeOptions): WrapTypeHandle {
 		opts.mode,
 		opts.fontSize,
 		opts.fontFamily,
+		opts.fontWeight,
 		opts.color,
 		opts.radius,
 		opts.height,
 		opts.autoRotate,
 		opts.autoRotateSpeed,
 		opts.camera,
+		opts.repeat,
+		opts.characterCurve,
 	])
 
 	// Re-mount after fonts load — measureCharWidths uses Canvas API which reads

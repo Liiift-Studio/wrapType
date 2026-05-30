@@ -124,10 +124,19 @@ export function createWrapScene(
 	renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;'
 
 	// The container needs position:relative so the absolute renderer overlays correctly
-	const prevPos = container.style.position
+	const prevPos      = container.style.position
+	const prevOverflow = container.style.overflow
 	if (!prevPos || prevPos === 'static') container.style.position = 'relative'
 	container.style.overflow = 'hidden'
+
+	// Save scroll before DOM mutations — iOS Safari ignores overflow-anchor:none
+	const scrollYBefore = window.scrollY
 	container.appendChild(renderer.domElement)
+	requestAnimationFrame(() => {
+		if (Math.abs(window.scrollY - scrollYBefore) > 2) {
+			window.scrollTo({ top: scrollYBefore, behavior: 'instant' })
+		}
+	})
 
 	// ── Character objects ──────────────────────────────────────────────────────
 	const objects: CSS3DObject[] = []
@@ -137,7 +146,7 @@ export function createWrapScene(
 		for (const o of objects) scene.remove(o)
 		objects.length = 0
 
-		const curve  = opts.characterCurve ?? 0
+		const curve  = Math.min(1, Math.max(0, opts.characterCurve ?? 0))
 		const radius = opts.radius ?? 300
 		const fs     = opts.fontSize ?? 14
 
@@ -225,13 +234,17 @@ export function createWrapScene(
 
 	if (opts.camera !== 'fixed') {
 		overlay = document.createElement('div')
-		overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;'
+		overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;'
 		container.appendChild(overlay)
 
 		controls = new OrbitControls(camera, overlay)
 		controls.enableDamping    = true
 		controls.dampingFactor    = 0.05
-		controls.autoRotate       = opts.autoRotate ?? false
+		// Respect prefers-reduced-motion — never auto-rotate when OS motion is reduced
+		const prefersReducedMotion =
+			typeof window !== 'undefined' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		controls.autoRotate       = (opts.autoRotate ?? false) && !prefersReducedMotion
 		controls.autoRotateSpeed  = opts.autoRotateSpeed ?? 1.0
 		controls.enableZoom       = true
 		controls.enablePan        = false
@@ -248,8 +261,11 @@ export function createWrapScene(
 	controls?.addEventListener('change', () => { needRender = true })
 
 	function animate() {
-		rafId = requestAnimationFrame(animate)
+		// Reschedule only if still visible — stops waking CPU/GPU when off-screen.
+		// The IntersectionObserver restarts the loop on re-entry via scheduleAnimate().
 		if (!visible) return
+
+		rafId = requestAnimationFrame(animate)
 
 		// For animated shapes, recompute positions each frame (no DOM writes)
 		if (animated) {
@@ -265,12 +281,24 @@ export function createWrapScene(
 			needRender = false
 		}
 	}
-	animate()
+
+	/** Start or restart the rAF loop. Safe to call multiple times. */
+	function scheduleAnimate() {
+		cancelAnimationFrame(rafId)
+		rafId = 0
+		if (visible) {
+			rafId = requestAnimationFrame(animate)
+		}
+	}
+	scheduleAnimate()
 
 	// ── Intersection observer — pause rAF while scene is off-screen ────────────
 	const io = new IntersectionObserver(([entry]) => {
 		visible = entry.isIntersecting
-		if (visible) needRender = true   // force one render on re-entry
+		if (visible) {
+			needRender = true   // force one render on re-entry
+			scheduleAnimate()   // restart the loop (it stopped itself when invisible)
+		}
 	})
 	io.observe(container)
 
@@ -298,6 +326,7 @@ export function createWrapScene(
 			overlay?.remove()
 			scene.clear()
 			container.style.position = prevPos
+			container.style.overflow = prevOverflow
 		},
 		rebuild(positions: CharPosition[]) {
 			buildObjects(positions)

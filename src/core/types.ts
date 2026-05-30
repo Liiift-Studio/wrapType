@@ -19,7 +19,7 @@ export type WrapTypeFill = 'cover' | 'flow' | 'full-width' | 'full-height' | 'pa
 /** Camera interaction mode */
 export type WrapTypeCamera = 'orbit' | 'fixed'
 
-/** Options accepted by WrapTypeScene, useWrapType, and startWrapType */
+/** Options accepted by WrapTypeScene, useWrapType, and createWrapScene */
 export interface WrapTypeOptions {
 	/** Text to place on the surface. Repeated to fill in cover/flow/pattern modes. */
 	text: string

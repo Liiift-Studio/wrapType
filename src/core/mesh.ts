@@ -58,11 +58,12 @@ export function getCharPositionsFromMesh(
 
 	// Compute bounding box in local (geometry) space
 	geom.computeBoundingBox()
-	const box    = geom.boundingBox!
 	const center = new Vector3()
 	const size   = new Vector3()
-	box.getCenter(center)
-	box.getSize(size)
+	if (geom.boundingBox) {
+		geom.boundingBox.getCenter(center)
+		geom.boundingBox.getSize(size)
+	}
 	// Scale so the longest side spans the full diameter (radius × 2)
 	const maxDim = Math.max(size.x, size.y, size.z) || 1
 	const scale  = (radius * 2) / maxDim

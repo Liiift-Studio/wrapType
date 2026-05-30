@@ -556,7 +556,7 @@ function flagFlow(text: string, opts: WrapTypeOptions, t: number): CharPosition[
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
 /** Returns true for shapes whose character positions change over time. */
-export function isAnimatedShape(shape: string | undefined): boolean {
+export function isAnimatedShape(shape: WrapTypeShape | undefined): boolean {
 	return shape === 'flag'
 }
 
@@ -573,9 +573,19 @@ export function isAnimatedShape(shape: string | undefined): boolean {
 export function getCharPositionsAt(opts: WrapTypeOptions, t: number): CharPosition[] {
 	const shape = opts.shape ?? 'sphere'
 	const fill  = opts.fill  ?? 'cover'
+	// Warn when text is empty so consumers know the 'Type' fallback is active
+	if (!opts.text) console.warn('[wrapType] opts.text is empty — falling back to "Type".')
 	const text  = opts.text  || 'Type'
 
 	let positions: CharPosition[]
+
+	// Warn on unimplemented fill/mode values so consumers are not silently misled
+	if (fill === 'pattern') {
+		console.warn('[wrapType] fill:"pattern" is not yet implemented — falling back to "cover".')
+	}
+	if (opts.mode === 'silhouette') {
+		console.warn('[wrapType] mode:"silhouette" is not yet implemented — falling back to "surface".')
+	}
 
 	if (shape === 'sphere') {
 		if (fill === 'flow')        positions = sphereFlow(text, opts)

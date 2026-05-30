@@ -11,8 +11,8 @@ declare module 'troika-three-text' {
 		maxWidth: number
 		textAlign: 'left' | 'center' | 'right'
 		color: string | number
-		anchorX: string | number
-		anchorY: string | number
+		anchorX: 'left' | 'center' | 'right' | number
+		anchorY: 'top' | 'top-baseline' | 'top-cap' | 'top-ex' | 'middle' | 'bottom-baseline' | 'bottom' | number
 		/** Bends the text geometry to follow a circle of the given radius */
 		curveRadius: number
 		/** Sync geometry after changing properties */

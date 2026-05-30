@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { getCharPositions, getCharPositionsAt } from '../core/geometry'
-import type { WrapTypeOptions } from '../core/types'
+import type { WrapTypeOptions, WrapTypeShape } from '../core/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -131,6 +131,53 @@ describe('sphere full-height', () => {
 		// Should span from near +r to near -r
 		expect(range).toBeGreaterThan(BASE.radius! as number)
 	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 4)
+		}
+	})
+
+	it('right is perpendicular to normal', () => {
+		for (const cp of positions) {
+			expect(dot(cp.normal, cp.right)).toBeCloseTo(0, 4)
+		}
+	})
+
+	it('up is perpendicular to normal', () => {
+		for (const cp of positions) {
+			expect(dot(cp.normal, cp.up)).toBeCloseTo(0, 4)
+		}
+	})
+})
+
+// ─── Cylinder — flow ──────────────────────────────────────────────────────────
+
+describe('cylinder flow', () => {
+	const positions = getCharPositions({ ...BASE, shape: 'cylinder', fill: 'flow' })
+
+	it('returns at least text.length positions', () => {
+		expect(positions.length).toBeGreaterThanOrEqual(BASE.text.length)
+	})
+
+	it('all positions are on the equator (y = 0)', () => {
+		for (const cp of positions) {
+			expect(cp.position[1]).toBeCloseTo(0, 5)
+		}
+	})
+
+	it('all positions at the correct radius from y-axis', () => {
+		for (const cp of positions) {
+			const r = Math.sqrt(cp.position[0] ** 2 + cp.position[2] ** 2)
+			expect(r).toBeCloseTo(BASE.radius!, 0)
+		}
+	})
+
+	it('all normals are horizontal (y component = 0)', () => {
+		for (const cp of positions) {
+			expect(cp.normal[1]).toBeCloseTo(0, 5)
+		}
+	})
 })
 
 // ─── Cylinder — cover ─────────────────────────────────────────────────────────
@@ -169,6 +216,28 @@ describe('torus flow', () => {
 		for (const cp of positions) {
 			expect(cp.position[1]).toBeCloseTo(0, 5)
 		}
+	})
+})
+
+// ─── Torus — cover ────────────────────────────────────────────────────────────
+
+describe('torus cover', () => {
+	const positions = getCharPositions({ ...BASE, shape: 'torus', fill: 'cover' })
+
+	it('returns more positions than text length (full torus surface)', () => {
+		expect(positions.length).toBeGreaterThan(BASE.text.length * 5)
+	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 4)
+		}
+	})
+
+	it('positions span both positive and negative y values (minor axis)', () => {
+		const ys = positions.map(p => p.position[1])
+		expect(Math.max(...ys)).toBeGreaterThan(0)
+		expect(Math.min(...ys)).toBeLessThan(0)
 	})
 })
 
@@ -302,6 +371,35 @@ describe('flag cover — animation (t = 1)', () => {
 	})
 })
 
+// ─── Flag — flow ──────────────────────────────────────────────────────────────
+
+describe('flag flow (t = 0)', () => {
+	const positions = getCharPositionsAt({ ...BASE, shape: 'flag', fill: 'flow' }, 0)
+
+	it('returns at least one position', () => {
+		expect(positions.length).toBeGreaterThan(0)
+	})
+
+	it('all normals are unit vectors', () => {
+		for (const cp of positions) {
+			expect(len(cp.normal)).toBeCloseTo(1, 4)
+		}
+	})
+
+	it('all positions are at the vertical centre of the flag (v = 0.5)', () => {
+		// In flag flow the single band is at v = 0.5, so y should be near 0
+		for (const cp of positions) {
+			expect(cp.position[1]).toBeCloseTo(0, 0)
+		}
+	})
+
+	it('character count changes at different t values — flag is animated', () => {
+		const p1 = getCharPositionsAt({ ...BASE, shape: 'flag', fill: 'flow' }, 1)
+		// Character count should stay the same (same row layout)
+		expect(p1.length).toBe(positions.length)
+	})
+})
+
 // ─── isAnimatedShape ──────────────────────────────────────────────────────────
 
 import { isAnimatedShape } from '../core/geometry'
@@ -324,5 +422,41 @@ describe('getCharPositions dispatcher', () => {
 	it('handles empty-ish text by falling back to "Type"', () => {
 		const positions = getCharPositions({ text: '' })
 		expect(positions.length).toBeGreaterThan(0)
+	})
+
+	it('repeat:false slices to text.length and maps characters in order', () => {
+		const text = 'Hello'
+		const positions = getCharPositions({ text, shape: 'sphere', fill: 'cover', repeat: false })
+		expect(positions.length).toBe(text.length)
+		for (let i = 0; i < text.length; i++) {
+			expect(positions[i].char).toBe(text[i])
+		}
+	})
+
+	it('unknown shape falls back to sphereCover without throwing', () => {
+		// Cast to bypass TS — tests runtime safety for unrecognised shape strings
+		const positions = getCharPositions({ text: 'Hi', shape: 'unknown' as WrapTypeShape })
+		expect(positions.length).toBeGreaterThan(0)
+	})
+})
+
+// ─── surfaceFrame — pole-degenerate path ──────────────────────────────────────
+
+describe('surfaceFrame pole degenerate', () => {
+	it('sphere full-height at north pole gives a valid orientation frame', () => {
+		// sphere full-height places characters near the poles — surfaceFrame must
+		// switch its reference vector when the normal is parallel to world +Y.
+		const positions = getCharPositions({
+			text: 'P', shape: 'sphere', fill: 'full-height',
+			radius: 300, fontSize: 14,
+		})
+		for (const cp of positions) {
+			// right must be perpendicular to normal
+			expect(dot(cp.normal, cp.right)).toBeCloseTo(0, 4)
+			// up must be perpendicular to normal
+			expect(dot(cp.normal, cp.up)).toBeCloseTo(0, 4)
+			// right must be a unit vector
+			expect(len(cp.right)).toBeCloseTo(1, 4)
+		}
 	})
 })

@@ -84,8 +84,8 @@ export const WrapTypeMesh = forwardRef<THREE.Group, WrapTypeMeshProps>(
 		const prevKeyRef = useRef<string>('')
 		const initializedRef = useRef(false)
 
-		// Expose the group via forwardRef
-		useImperativeHandle(forwardedRef, () => groupRef.current as THREE.Group)
+		// Expose the group via forwardRef — only when mounted (null during unmount)
+		useImperativeHandle(forwardedRef, () => groupRef.current as THREE.Group, [])
 
 		// Create the group on mount; add it to the scene imperatively
 		useEffect(() => {
