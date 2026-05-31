@@ -1,6 +1,6 @@
 // wrapType/src/core/geometry.ts — character position computation for each shape and fill mode
 
-import type { WrapTypeOptions, CharPosition } from './types'
+import type { WrapTypeOptions, CharPosition, WrapTypeShape } from './types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
