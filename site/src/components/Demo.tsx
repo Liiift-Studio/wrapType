@@ -1,11 +1,12 @@
 "use client"
 
 // wrapType demo — DOM (CSS3DRenderer) and SDF (WebGL/troika) renderer tabs
-import { useState, useDeferredValue, useCallback, useRef, Suspense, lazy, Component } from "react"
+import { useState, useDeferredValue, useCallback, useRef, Suspense, lazy, Component, useMemo } from "react"
 import type { ReactNode } from "react"
 import { WrapTypeScene, getCharPositionsFromMesh } from "@liiift-studio/wraptype"
 import type { WrapTypeShape, WrapTypeFill, CharPosition } from "@liiift-studio/wraptype"
-import { Mesh } from "three"
+import { Mesh, Group } from "three"
+import type { Object3D } from "three"
 
 // ─── Lazy-load SDF Canvas (avoids SSR errors) ──────────────────────────────
 
@@ -13,14 +14,29 @@ const SDFCanvas = lazy(() => import("./SDFCanvas"))
 
 // ─── Error boundary for the SDF WebGL canvas ─────────────────────────────────
 
-interface SdfErrorBoundaryState { hasError: boolean }
-class SdfErrorBoundary extends Component<{ children: ReactNode }, SdfErrorBoundaryState> {
-	constructor(props: { children: ReactNode }) {
+interface SdfErrorBoundaryProps { children: ReactNode; rendererKey: string }
+interface SdfErrorBoundaryState { hasError: boolean; rendererKey: string }
+
+/** Error boundary that resets automatically when the renderer tab is switched. */
+class SdfErrorBoundary extends Component<SdfErrorBoundaryProps, SdfErrorBoundaryState> {
+	constructor(props: SdfErrorBoundaryProps) {
 		super(props)
-		this.state = { hasError: false }
+		this.state = { hasError: false, rendererKey: props.rendererKey }
 	}
-	static getDerivedStateFromError() { return { hasError: true } }
-	reset() { this.setState({ hasError: false }) }
+	static getDerivedStateFromError(_: Error, prevState: SdfErrorBoundaryState): SdfErrorBoundaryState {
+		return { ...prevState, hasError: true }
+	}
+	/** Reset the boundary when the renderer tab changes. */
+	static getDerivedStateFromProps(
+		props: SdfErrorBoundaryProps,
+		state: SdfErrorBoundaryState,
+	): SdfErrorBoundaryState | null {
+		if (props.rendererKey !== state.rendererKey) {
+			return { hasError: false, rendererKey: props.rendererKey }
+		}
+		return null
+	}
+	reset() { this.setState({ hasError: false, rendererKey: this.props.rendererKey }) }
 	render() {
 		if (this.state.hasError) {
 			return (
@@ -63,6 +79,18 @@ const UNIT_CFG: Record<SizeUnit, UnitConfig> = {
 
 const SIZE_UNITS: SizeUnit[] = ["px", "pt", "em", "rem", "vw", "vh"]
 
+/** Maximum accepted mesh file size (20 MB). */
+const MAX_MESH_BYTES = 20 * 1024 * 1024
+
+/** Accepted MIME types for mesh files. */
+const ACCEPTED_MESH_MIME = new Set([
+	"model/gltf-binary",
+	"model/gltf+json",
+	"text/plain",           // common .obj MIME in many browsers
+	"application/octet-stream", // fallback for .glb
+	"",                     // some browsers return empty string for unknown types
+])
+
 /** Convert a value in any supported unit to CSS pixels. Safe to call server-side. */
 function toPx(value: number, unit: SizeUnit): number {
 	if (unit === "px")  return value
@@ -98,7 +126,8 @@ function fromPx(px: number, unit: SizeUnit): number {
 const DEFAULT_TEXT  = "TYPE"
 const DEFAULT_SHAPE = "flag"  as WrapTypeShape
 const DEFAULT_FILL  = "cover" as WrapTypeFill
-const FONT_FAMILY   = "Inter, sans-serif"
+/** Font family reference via the next/font CSS variable set in layout.tsx. */
+const FONT_FAMILY   = "var(--font-inter), sans-serif"
 const FONT_WEIGHT   = 900
 
 const DOM_SHAPES: { value: WrapTypeShape; label: string; title: string }[] = [
@@ -122,6 +151,7 @@ const FILLS: { value: WrapTypeFill; label: string; title: string }[] = [
 	{ value: "flow",        label: "Flow",        title: "Let text flow naturally across the surface at its current size" },
 	{ value: "full-width",  label: "Full Width",  title: "Stretch text to fill the full width of the mesh" },
 	{ value: "full-height", label: "Full Height", title: "Stretch text to fill the full height of the mesh" },
+	{ value: "pattern",     label: "Pattern",     title: "Tile text as a repeating grid across the surface" },
 ]
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -152,7 +182,6 @@ export default function Demo() {
 	// Size in selected unit
 	const [sizeValue, setSizeValue] = useState(8)
 	const [sizeUnit,  setSizeUnit]  = useState<SizeUnit>("vw")
-	const fontSizePx = toPx(sizeValue, sizeUnit)
 
 	// 3D mesh drop state
 	const [meshPositions, setMeshPositions] = useState<CharPosition[] | null>(null)
@@ -170,27 +199,53 @@ export default function Demo() {
 	const [sdfCurvatureTracking, setSdfCurvatureTracking] = useState(true)
 	const [sdfColor,             setSdfColor]             = useState("#ffffff")
 	// fontSize in Three.js units (1 = 1 world unit); radius is fixed at 2
-	const [sdfFontSize,   setSdfFontSize]   = useState(0.15)
+	const [sdfFontSize,      setSdfFontSize]      = useState(0.15)
 	const [sdfLetterSpacing, setSdfLetterSpacing] = useState(0)
+
+	// ── Derived values — memoised to avoid redundant DOM reads ────────────
+
+	/** Font size in CSS pixels, derived from current unit value. */
+	const fontSizePx = useMemo(() => toPx(sizeValue, sizeUnit), [sizeValue, sizeUnit])
+
+	/** Unit config for the currently selected size unit. */
+	const cfg = useMemo(() => UNIT_CFG[sizeUnit], [sizeUnit])
+
+	/** Human-readable size label shown above the range slider. */
+	const sizeLabel = useMemo(() => {
+		const displayValue = sizeValue.toFixed(cfg.decimals)
+		const pxHint = sizeUnit !== "px" ? ` ≈ ${Math.round(fontSizePx)}px` : ""
+		return `${displayValue} ${sizeUnit}${pxHint}`
+	}, [sizeValue, sizeUnit, cfg.decimals, fontSizePx])
+
+	/** Shape used for the DOM scene — falls back to sphere when a custom mesh is loaded. */
+	const domSceneShape = useMemo(
+		() => meshPositions ? "sphere" : shape,
+		[meshPositions, shape],
+	)
 
 	// ── Unit switching — preserve visual size ──────────────────────────────
 
-	function changeUnit(newUnit: SizeUnit) {
+	const changeUnit = useCallback((newUnit: SizeUnit) => {
 		const currentPx = toPx(sizeValue, sizeUnit)
-		const cfg       = UNIT_CFG[newUnit]
+		const unitCfg   = UNIT_CFG[newUnit]
 		const converted = fromPx(currentPx, newUnit)
-		const stepped   = Math.round(converted / cfg.step) * cfg.step
-		const clamped   = Math.min(cfg.max, Math.max(cfg.min, stepped))
-		setSizeValue(Number(clamped.toFixed(cfg.decimals + 2)))
+		const stepped   = Math.round(converted / unitCfg.step) * unitCfg.step
+		const clamped   = Math.min(unitCfg.max, Math.max(unitCfg.min, stepped))
+		setSizeValue(Number(clamped.toFixed(unitCfg.decimals + 2)))
 		setSizeUnit(newUnit)
-	}
+	}, [sizeValue, sizeUnit])
 
 	// ── 3D file loading ────────────────────────────────────────────────────
 
-	async function loadFile(file: File) {
+	const loadFile = useCallback(async (file: File) => {
 		const ext = file.name.split(".").pop()?.toLowerCase()
 		if (!["glb", "gltf", "obj"].includes(ext ?? "")) {
 			setMeshError("Only .glb, .gltf, and .obj files are supported.")
+			return
+		}
+		// Validate file size
+		if (file.size > MAX_MESH_BYTES) {
+			setMeshError("File exceeds the 20 MB limit. Reduce polygon count and re-export.")
 			return
 		}
 		setMeshError(null)
@@ -201,62 +256,72 @@ export default function Demo() {
 			if (ext === "glb" || ext === "gltf") {
 				const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js")
 				const loader = new GLTFLoader()
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const gltf = await new Promise<any>((res, rej) => loader.load(url, res, undefined, rej))
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				gltf.scene.traverse((child: any) => { if (!firstMesh && child instanceof Mesh) firstMesh = child })
+				const gltf = await loader.loadAsync(url)
+				gltf.scene.traverse((child: Object3D) => {
+					if (!firstMesh && child instanceof Mesh) firstMesh = child
+				})
 			} else {
 				const { OBJLoader } = await import("three/addons/loaders/OBJLoader.js")
 				const loader = new OBJLoader()
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const obj = await new Promise<any>((res, rej) => loader.load(url, res, undefined, rej))
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				obj.traverse((child: any) => { if (!firstMesh && child instanceof Mesh) firstMesh = child })
+				const obj = await new Promise<Group>(
+					(res, rej) => loader.load(url, res, undefined, rej),
+				)
+				obj.traverse((child: Object3D) => {
+					if (!firstMesh && child instanceof Mesh) firstMesh = child
+				})
 			}
 			if (!firstMesh) { setMeshError("No mesh found. Merge all objects into one before exporting."); return }
 			const positions = getCharPositionsFromMesh(firstMesh, dText || "TYPE", { radius: 300 }, 250)
 			setMeshPositions(positions)
 			setMeshName(file.name)
+			// Revoke after positions are computed — GLTFLoader may issue secondary fetches
+			URL.revokeObjectURL(url)
 		} catch {
+			URL.revokeObjectURL(url)
 			setMeshError("Failed to load the file. Check the format and try again.")
 		} finally {
-			URL.revokeObjectURL(url)
 			setMeshLoading(false)
 		}
-	}
+	}, [dText])
 
 	// ── Drag-and-drop ──────────────────────────────────────────────────────
 
-	const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true)  }, [])
-	const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false) }, [])
+	const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }, [])
+
+	/** Ignore drag-leave events that fire when the pointer moves over a child element. */
+	const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault()
+		const related = e.relatedTarget as Node | null
+		if (related && e.currentTarget.contains(related)) return
+		setIsDragging(false)
+	}, [])
+
 	const handleDrop = useCallback(async (e: React.DragEvent) => {
 		e.preventDefault(); setIsDragging(false)
 		const file = e.dataTransfer.files[0]; if (file) await loadFile(file)
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [dText])
+	}, [loadFile])
 
 	const handleFileInput = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]; if (file) await loadFile(file); e.target.value = ""
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [dText])
+	}, [loadFile])
 
 	const clearMesh = useCallback(() => { setMeshPositions(null); setMeshName(null); setMeshError(null) }, [])
-
-	const domSceneShape = meshPositions ? "sphere" : shape
-
-	// ── Size label ─────────────────────────────────────────────────────────
-
-	const cfg = UNIT_CFG[sizeUnit]
-	const displayValue = sizeValue.toFixed(cfg.decimals)
-	const pxHint = sizeUnit !== "px" ? ` ≈ ${Math.round(fontSizePx)}px` : ""
-	const sizeLabel = `${displayValue} ${sizeUnit}${pxHint}`
 
 	return (
 		<div className="w-full flex flex-col gap-6">
 
 			{/* Renderer tab bar */}
-			<div className="flex w-full rounded-lg overflow-hidden text-xs" style={{ border: "1px solid rgba(255,255,255,0.12)" }}>
+			<div
+				role="tablist"
+				aria-label="Renderer mode"
+				className="flex w-full rounded-lg overflow-hidden text-xs"
+				style={{ border: "1px solid rgba(255,255,255,0.12)" }}
+			>
 				<button
+					role="tab"
+					aria-selected={renderer === "dom"}
+					aria-controls="renderer-panel"
+					id="tab-dom"
 					onClick={() => setRenderer("dom")}
 					title="Switch to the DOM renderer — text wraps as real HTML spans using CSS3DRenderer"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
@@ -268,11 +333,15 @@ export default function Demo() {
 					<span className={`uppercase tracking-widest font-medium transition-opacity ${renderer === "dom" ? "opacity-100" : "opacity-40"}`}>
 						DOM — CSS3D
 					</span>
-					<span className={`hidden sm:block transition-opacity ${renderer === "dom" ? "opacity-40" : "opacity-20"}`}>
+					<span className={`text-[10px] transition-opacity ${renderer === "dom" ? "opacity-40" : "opacity-20"}`}>
 						Real HTML spans · variable fonts · composable
 					</span>
 				</button>
 				<button
+					role="tab"
+					aria-selected={renderer === "sdf"}
+					aria-controls="renderer-panel"
+					id="tab-sdf"
 					onClick={() => setRenderer("sdf")}
 					title="Switch to the SDF renderer — text is GPU-rendered inside a WebGL canvas using troika-three-text"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
@@ -283,7 +352,7 @@ export default function Demo() {
 					<span className={`uppercase tracking-widest font-medium transition-opacity ${renderer === "sdf" ? "opacity-100" : "opacity-40"}`}>
 						SDF — WebGL
 					</span>
-					<span className={`hidden sm:block transition-opacity ${renderer === "sdf" ? "opacity-40" : "opacity-20"}`}>
+					<span className={`text-[10px] transition-opacity ${renderer === "sdf" ? "opacity-40" : "opacity-20"}`}>
 						GPU text · troika · native surface curvature
 					</span>
 				</button>
@@ -291,7 +360,7 @@ export default function Demo() {
 
 			{/* ── DOM TAB ─────────────────────────────────────────────────── */}
 			{renderer === "dom" && (
-				<>
+				<div role="tabpanel" id="renderer-panel" aria-labelledby="tab-dom">
 					{/* Scene — drag-drop target */}
 					<div
 						className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-white/40" : ""}`}
@@ -300,22 +369,33 @@ export default function Demo() {
 						onDragLeave={handleDragLeave}
 						onDrop={handleDrop}
 					>
-						<WrapTypeScene
-							text={dText}
-							shape={domSceneShape}
-							fill={fill}
-							fontSize={fontSizePx}
-							fontFamily={FONT_FAMILY}
-							fontWeight={FONT_WEIGHT}
-							radius={300}
-							color="rgba(220,210,255,0.9)"
-							autoRotate={autoRot}
-							autoRotateSpeed={0.5}
-							repeat={repeat}
-							characterCurve={curve}
-							positions={meshPositions ?? undefined}
-							style={{ width: "100%", height: "100%" }}
-						/>
+						<div
+							aria-label="3D typography visualisation — drag to orbit, scroll to zoom"
+							role="img"
+							className="w-full h-full"
+						>
+							<WrapTypeScene
+								text={dText}
+								shape={domSceneShape}
+								fill={fill}
+								fontSize={fontSizePx}
+								fontFamily={FONT_FAMILY}
+								fontWeight={FONT_WEIGHT}
+								radius={300}
+								color="rgba(220,210,255,0.9)"
+								autoRotate={autoRot}
+								autoRotateSpeed={0.5}
+								repeat={repeat}
+								characterCurve={curve}
+								positions={meshPositions ?? undefined}
+								style={{ width: "100%", height: "100%" }}
+							/>
+						</div>
+
+						{/* Touch hint — shown only on small screens */}
+						<div className="absolute bottom-4 left-4 sm:hidden pointer-events-none">
+							<p className="text-[10px] opacity-30 tracking-wide">Touch to orbit · pinch to zoom</p>
+						</div>
 
 						{isDragging && (
 							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.3)" }}>
@@ -323,7 +403,12 @@ export default function Demo() {
 							</div>
 						)}
 						{meshLoading && (
-							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.4)" }}>
+							<div
+								className="absolute inset-0 flex items-center justify-center pointer-events-none"
+								style={{ background: "rgba(0,0,0,0.4)" }}
+								role="status"
+								aria-live="polite"
+							>
 								<p className="text-white/60 text-xs tracking-widest uppercase">Loading mesh…</p>
 							</div>
 						)}
@@ -335,33 +420,53 @@ export default function Demo() {
 						)}
 						{!meshPositions && !isDragging && !meshLoading && (
 							<>
-								<input ref={fileInputRef} type="file" accept=".glb,.gltf,.obj" className="hidden" aria-label="Load 3D file" onChange={handleFileInput} />
-								<button
-									onClick={() => fileInputRef.current?.click()}
+								{/*
+									Use a <label> wrapping the hidden <input> — the only pattern that
+									reliably opens the file picker on iOS Safari without a programmatic .click().
+								*/}
+								<label
+									htmlFor="mesh-file-input"
 									title="Load a custom 3D mesh (.glb, .gltf, or .obj) — text will wrap around its surface"
-									className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 text-xs opacity-30 hover:opacity-60 transition-opacity"
+									className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 text-xs opacity-30 hover:opacity-60 transition-opacity cursor-pointer"
 									style={{ border: "1.5px dashed currentColor", borderRadius: "6px" }}
 								>
 									<UploadIcon />
 									Drop or click — .glb / .gltf / .obj
-								</button>
+									<input
+										id="mesh-file-input"
+										ref={fileInputRef}
+										type="file"
+										accept=".glb,.gltf,.obj"
+										className="sr-only"
+										aria-label="Load 3D file"
+										onChange={handleFileInput}
+									/>
+								</label>
 							</>
 						)}
 					</div>
 
+					{/* Mesh error — announced to screen readers */}
 					{meshError && (
-						<p className="text-xs opacity-70" style={{ color: "rgba(255,120,120,0.9)" }}>{meshError}</p>
+						<p role="alert" className="text-xs opacity-70 mt-3" style={{ color: "rgba(255,120,120,0.9)" }}>{meshError}</p>
 					)}
 
 					{/* DOM Controls */}
-					<div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs transition-opacity ${meshPositions ? "opacity-30 pointer-events-none select-none" : ""}`}>
+					<div
+						className={`grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs transition-opacity mt-4 ${meshPositions ? "opacity-30 pointer-events-none select-none" : ""}`}
+						aria-disabled={meshPositions ? "true" : undefined}
+					>
+						{meshPositions && (
+							<p className="sm:col-span-2 text-xs opacity-50 italic">Controls are disabled while a custom mesh is loaded. Clear the mesh above to re-enable.</p>
+						)}
 
 						{/* Shape */}
 						<div className="flex flex-col gap-2">
-							<span className="uppercase tracking-widest opacity-50">Shape</span>
-							<div className="flex gap-2 flex-wrap">
+							<span id="dom-shape-label" className="uppercase tracking-widest opacity-50">Shape</span>
+							<div role="group" aria-labelledby="dom-shape-label" className="flex gap-2 flex-wrap">
 								{DOM_SHAPES.map(s => (
 									<button key={s.value} onClick={() => setShape(s.value)}
+										aria-pressed={shape === s.value}
 										title={s.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{s.label}
@@ -372,10 +477,11 @@ export default function Demo() {
 
 						{/* Fill */}
 						<div className="flex flex-col gap-2">
-							<span className="uppercase tracking-widest opacity-50">Fill</span>
-							<div className="flex gap-2 flex-wrap">
+							<span id="dom-fill-label" className="uppercase tracking-widest opacity-50">Fill</span>
+							<div role="group" aria-labelledby="dom-fill-label" className="flex gap-2 flex-wrap">
 								{FILLS.map(f => (
 									<button key={f.value} onClick={() => setFill(f.value)}
+										aria-pressed={fill === f.value}
 										title={f.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{f.label}
@@ -387,12 +493,13 @@ export default function Demo() {
 						{/* Size — value slider + unit picker */}
 						<div className="flex flex-col gap-2 sm:col-span-2">
 							<div className="flex items-baseline justify-between">
-								<span className="uppercase tracking-widest opacity-50">Size — {sizeLabel}</span>
-								<div className="flex gap-1">
+								<span id="dom-size-label" className="uppercase tracking-widest opacity-50">Size — {sizeLabel}</span>
+								<div role="group" aria-label="Font size unit" className="flex gap-1">
 									{SIZE_UNITS.map(u => (
 										<button
 											key={u}
 											onClick={() => changeUnit(u)}
+											aria-pressed={sizeUnit === u}
 											title={`Set font size unit to ${u}`}
 											className={`px-2 py-0.5 rounded text-xs transition-colors font-mono ${
 												sizeUnit === u ? "bg-white/15 opacity-100" : "opacity-30 hover:opacity-60"
@@ -411,6 +518,7 @@ export default function Demo() {
 								value={sizeValue}
 								onChange={e => setSizeValue(Number(e.target.value))}
 								aria-label={`Font size in ${sizeUnit}`}
+								aria-labelledby="dom-size-label"
 								title={`Adjust the font size of the wrapped text (currently ${sizeLabel})`}
 								className="w-full accent-white/60"
 							/>
@@ -420,6 +528,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Rotation</span>
 							<button onClick={() => setAutoRot(r => !r)}
+								aria-pressed={autoRot}
 								title={autoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{autoRot ? "Auto-rotating" : "Paused"}
@@ -430,6 +539,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Repeat</span>
 							<button onClick={() => setRepeat(r => !r)}
+								aria-pressed={repeat}
 								title={repeat ? "Stop tiling — show the text string only once around the mesh" : "Tile the text string repeatedly to fill the entire surface"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{repeat ? "Tiling" : "Once"}
@@ -451,33 +561,42 @@ export default function Demo() {
 						{/* Text */}
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Text</span>
-							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+							<textarea
+								value={text}
+								onChange={e => setText(e.target.value || DEFAULT_TEXT)}
+								rows={1}
 								aria-label="Text to wrap on the surface"
 								title="The text string to wrap around the 3D mesh surface"
-								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
+								placeholder={DEFAULT_TEXT}
+								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20"
+							/>
 						</div>
 
 					</div>
 
-					<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
+					<p className="text-xs opacity-50 italic mt-2" style={{ lineHeight: "1.8" }}>
 						Drag to orbit. Scroll to zoom. Characters are measured with canvas
 						measureText and justified to fill each row exactly — no fixed tracking.
 						The flag animates each frame with no DOM writes.
 					</p>
-				</>
+				</div>
 			)}
 
 			{/* ── SDF TAB ─────────────────────────────────────────────────── */}
 			{renderer === "sdf" && (
-				<>
+				<div role="tabpanel" id="renderer-panel" aria-labelledby="tab-sdf">
 					{/* Canvas */}
 					<div
 						className="rounded-xl overflow-hidden"
 						style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
 					>
-						<SdfErrorBoundary>
+						<SdfErrorBoundary rendererKey={renderer}>
 						<Suspense fallback={
-							<div className="w-full h-full flex items-center justify-center">
+							<div
+								className="w-full h-full flex items-center justify-center"
+								role="status"
+								aria-live="polite"
+							>
 								<span className="text-xs opacity-30 tracking-widest uppercase">Loading WebGL…</span>
 							</div>
 						}>
@@ -495,14 +614,15 @@ export default function Demo() {
 					</div>
 
 					{/* SDF Controls */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mt-4">
 
 						{/* Shape */}
 						<div className="flex flex-col gap-2">
-							<span className="uppercase tracking-widest opacity-50">Shape</span>
-							<div className="flex gap-2 flex-wrap">
+							<span id="sdf-shape-label" className="uppercase tracking-widest opacity-50">Shape</span>
+							<div role="group" aria-labelledby="sdf-shape-label" className="flex gap-2 flex-wrap">
 								{SDF_SHAPES.map(s => (
 									<button key={s.value} onClick={() => setSdfShape(s.value)}
+										aria-pressed={sdfShape === s.value}
 										title={s.title}
 										className={`px-3 py-1.5 rounded-full border transition-colors ${sdfShape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 										{s.label}
@@ -515,6 +635,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Rotation</span>
 							<button onClick={() => setSdfAutoRot(r => !r)}
+								aria-pressed={sdfAutoRot}
 								title={sdfAutoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfAutoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{sdfAutoRot ? "Auto-rotating" : "Paused"}
@@ -525,6 +646,7 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Curvature tracking</span>
 							<button onClick={() => setSdfCurvatureTracking(v => !v)}
+								aria-pressed={sdfCurvatureTracking}
 								title={sdfCurvatureTracking ? "Disable curvature tracking — text will lay flat rather than conforming to the surface normal" : "Enable curvature tracking — text bends to follow the exact curvature of the mesh surface"}
 								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfCurvatureTracking ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
 								{sdfCurvatureTracking ? "On" : "Off"}
@@ -559,13 +681,17 @@ export default function Demo() {
 						<div className="flex flex-col gap-2">
 							<span className="uppercase tracking-widest opacity-50">Color</span>
 							<div className="flex items-center gap-3">
-								<input
-									type="color" value={sdfColor}
-									onChange={e => setSdfColor(e.target.value)}
-									aria-label="SDF text color"
-									title="Choose the fill color for the GPU-rendered text"
-									className="w-8 h-8 rounded cursor-pointer bg-transparent border border-white/20"
-								/>
+								{/* Wrapper brings tap target to ≥44px and provides a visible label */}
+								<label className="flex items-center gap-2 cursor-pointer">
+									<span className="text-xs opacity-50">Pick</span>
+									<input
+										type="color" value={sdfColor}
+										onChange={e => setSdfColor(e.target.value)}
+										aria-label="SDF text color"
+										title="Choose the fill color for the GPU-rendered text"
+										className="w-11 h-11 rounded cursor-pointer bg-transparent border border-white/20 p-0.5"
+									/>
+								</label>
 								<span className="font-mono opacity-50">{sdfColor}</span>
 							</div>
 						</div>
@@ -573,21 +699,26 @@ export default function Demo() {
 						{/* Text */}
 						<div className="flex flex-col gap-2 sm:col-span-2">
 							<span className="uppercase tracking-widest opacity-50">Text</span>
-							<textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+							<textarea
+								value={text}
+								onChange={e => setText(e.target.value || DEFAULT_TEXT)}
+								rows={1}
 								aria-label="Text to wrap on the surface"
 								title="The text string to wrap around the 3D mesh surface"
-								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20" />
+								placeholder={DEFAULT_TEXT}
+								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20"
+							/>
 						</div>
 
 					</div>
 
-					<p className="text-xs opacity-50 italic" style={{ lineHeight: "1.8" }}>
+					<p className="text-xs opacity-50 italic mt-2" style={{ lineHeight: "1.8" }}>
 						SDF mode uses troika-three-text for GPU-rendered anti-aliased text
 						inside a WebGL canvas. Each word is a separate mesh curved to the
 						surface via troika&rsquo;s native <code className="font-mono">curveRadius</code> property.
 						Unlike DOM mode, SDF text can receive lighting, shadows, and post-processing.
 					</p>
-				</>
+				</div>
 			)}
 		</div>
 	)

@@ -27,9 +27,10 @@ export default function Home() {
 						href="https://github.com/Liiift-Studio/WrapType"
 						target="_blank"
 						rel="noopener noreferrer"
+						aria-label="GitHub repository (opens in new tab)"
 						className="text-sm opacity-50 hover:opacity-100 transition-opacity"
 					>
-						GitHub ↗
+						GitHub <span aria-hidden="true">↗</span>
 					</a>
 				</div>
 				<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-50 tracking-wide">
@@ -40,15 +41,15 @@ export default function Home() {
 				<p className="text-base opacity-60 leading-relaxed max-w-lg">
 					CSS transforms can fake 3D. wrapType does it properly — distributing
 					real DOM text elements across the surface of a sphere, cylinder, torus,
-					or flat plane using Three.js&rsquo;s CSS3DRenderer. Variable fonts, CSS
-					animations, and every other Liiift tool compose naturally because the
-					characters are actual HTML, not canvas pixels.
+					flat plane, waving flag, or stool using Three.js&rsquo;s CSS3DRenderer.
+					Variable fonts, CSS animations, and every other Liiift tool compose
+					naturally because the characters are actual HTML, not canvas pixels.
 				</p>
 			</section>
 
 			{/* Interactive demo */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-4">
-				<p className="text-xs uppercase tracking-widest opacity-50">Interactive demo</p>
+				<h2 className="text-xs uppercase tracking-widest opacity-50">Interactive demo</h2>
 				<div className="rounded-xl -mx-8 px-8 py-8" style={{ background: "rgba(0,0,0,0.25)", overflow: "hidden" }}>
 					<Demo />
 				</div>
@@ -56,7 +57,7 @@ export default function Home() {
 
 			{/* How it works */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
-				<p className="text-xs uppercase tracking-widest opacity-50">How it works</p>
+				<h2 className="text-xs uppercase tracking-widest opacity-50">How it works</h2>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-12 text-sm leading-relaxed opacity-70">
 					<div className="flex flex-col gap-3">
 						<p className="font-semibold opacity-100 text-base">Real DOM on every surface</p>
@@ -101,7 +102,7 @@ export default function Home() {
 
 			{/* 3D file best practices */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
-				<p className="text-xs uppercase tracking-widest opacity-50">Custom meshes</p>
+				<h2 className="text-xs uppercase tracking-widest opacity-50">Custom meshes</h2>
 				<p className="text-sm opacity-60 leading-relaxed max-w-lg">
 					Drop any <code className="text-xs font-mono">.glb</code>,{" "}
 					<code className="text-xs font-mono">.gltf</code>, or{" "}
@@ -155,7 +156,7 @@ export default function Home() {
 			{/* Usage */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
 				<div className="flex items-baseline gap-4">
-					<p className="text-xs uppercase tracking-widest opacity-50">Usage</p>
+					<h2 className="text-xs uppercase tracking-widest opacity-50">Usage</h2>
 					<p className="text-xs opacity-50 tracking-wide">TypeScript + React · Vanilla JS</p>
 				</div>
 				<div className="flex flex-col gap-8 text-sm">
@@ -202,6 +203,31 @@ const scene = createWrapScene(container, positions, { autoRotate: true })
 
 // Later:
 scene.destroy()`} />
+					</div>
+
+					<div className="flex flex-col gap-3">
+						<p className="opacity-50">Custom mesh (Vanilla JS)</p>
+						<CodeBlock code={`import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { Mesh } from 'three'
+import { getCharPositionsFromMesh, createWrapScene } from '@liiift-studio/wraptype'
+
+const loader = new GLTFLoader()
+loader.load('/model.glb', (gltf) => {
+  let mesh = null
+  gltf.scene.traverse((child) => {
+    if (!mesh && child instanceof Mesh) mesh = child
+  })
+  if (!mesh) return
+
+  const container = document.getElementById('scene')
+  const positions = getCharPositionsFromMesh(
+    mesh,
+    'Typography on any surface',
+    { radius: 300 },
+    250, // sample count
+  )
+  const scene = createWrapScene(container, positions, { autoRotate: true })
+})`} />
 					</div>
 
 					<div className="flex flex-col gap-3">

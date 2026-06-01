@@ -12,11 +12,11 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "wrapType — Real DOM text on any 3D surface | Type Tools",
 	icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
-	description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh using Three.js CSS3DRenderer. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
+	description: "Wrap real HTML text across a sphere, cylinder, torus, plane, flag, stool, or custom mesh using Three.js CSS3DRenderer. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
 	keywords: ["typography", "3d", "three.js", "mesh", "surface", "css3d", "text-wrap", "webgl", "TypeScript", "npm", "react", "variable font", "css3drenderer", "orbit camera", "wraptype", "liiift"],
 	openGraph: {
 		title: "wrapType — Real DOM text on any 3D surface | Type Tools",
-		description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
+		description: "Wrap real HTML text across a sphere, cylinder, torus, plane, flag, stool, or custom mesh. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
 		url: "https://wraptype.com",
 		siteName: "wrapType",
 		type: "website",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 	twitter: {
 		card: "summary_large_image",
 		title: "wrapType — Real DOM text on any 3D surface | Type Tools",
-		description: "Wrap real HTML text across a sphere, cylinder, torus, or custom mesh. Variable fonts and CSS animations compose naturally — no canvas, no textures.",
+		description: "Wrap real HTML text across a sphere, cylinder, torus, plane, flag, stool, or custom mesh. Variable fonts, CSS animations, and hover states all compose naturally — no canvas, no textures.",
 	},
 	metadataBase: new URL("https://wraptype.com"),
 	alternates: { canonical: "https://wraptype.com" },
