@@ -15,10 +15,10 @@ export default function Home() {
 			{/* Hero */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
 				<div className="flex flex-col gap-2">
-					<p className="text-xs uppercase tracking-widest opacity-50">wrapType</p>
+					<p className="text-xs uppercase tracking-[0.18em] font-medium text-muted">wrapType</p>
 					<h1 className="text-4xl lg:text-8xl xl:text-9xl" style={{ fontFamily: "var(--font-merriweather), serif", fontVariationSettings: '"wght" 300, "opsz" 144', lineHeight: "1.05em" }}>
 						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }}>Text on a surface,</MagnetChar><br />
-						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }} style={{ opacity: 0.5, fontStyle: "italic" }}>still real DOM.</MagnetChar>
+						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }} style={{ color: "var(--foreground-subtle)", fontStyle: "italic" }}>still real DOM.</MagnetChar>
 					</h1>
 				</div>
 				<div className="flex items-center gap-4">
@@ -28,17 +28,17 @@ export default function Home() {
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label="GitHub repository (opens in new tab)"
-						className="text-sm opacity-50 hover:opacity-100 transition-opacity"
+						className="text-sm text-muted hover:text-foreground transition-colors"
 					>
 						GitHub <span aria-hidden="true">↗</span>
 					</a>
 				</div>
-				<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-50 tracking-wide">
+				<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted tracking-wide">
 					<span>TypeScript</span><span>·</span>
 					<span>Three.js CSS3DRenderer</span><span>·</span>
 					<span>React + Vanilla JS</span>
 				</div>
-				<p className="text-base opacity-60 leading-relaxed max-w-lg">
+				<p className="text-base text-muted leading-relaxed max-w-lg">
 					CSS transforms can fake 3D. wrapType does it properly — distributing
 					real DOM text elements across the surface of a sphere, cylinder, torus,
 					flat plane, waving flag, or stool using Three.js&rsquo;s CSS3DRenderer.
@@ -49,7 +49,7 @@ export default function Home() {
 
 			{/* Interactive demo */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-4">
-				<h2 className="text-xs uppercase tracking-widest opacity-50">Interactive demo</h2>
+				<h2 className="text-xs uppercase tracking-[0.18em] font-medium text-muted">Interactive demo</h2>
 				<div className="rounded-xl -mx-8 px-8 py-8" style={{ background: "rgba(0,0,0,0.25)", overflow: "hidden" }}>
 					<Demo />
 				</div>
@@ -57,10 +57,10 @@ export default function Home() {
 
 			{/* How it works */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
-				<h2 className="text-xs uppercase tracking-widest opacity-50">How it works</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-12 text-sm leading-relaxed opacity-70">
+				<h2 className="text-xs uppercase tracking-[0.18em] font-medium text-muted">How it works</h2>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-12 text-sm leading-relaxed text-muted">
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Real DOM on every surface</p>
+						<p className="font-semibold text-foreground text-base">Real DOM on every surface</p>
 						<p>
 							Three.js&rsquo;s CSS3DRenderer places HTML elements in 3D space using
 							CSS <code className="text-xs font-mono">perspective</code> and
@@ -70,7 +70,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Surface geometry, not a canvas</p>
+						<p className="font-semibold text-foreground text-base">Surface geometry, not a canvas</p>
 						<p>
 							Character positions are computed analytically from the shape
 							equations — no UV unwrapping or texture atlases. Spheres use
@@ -79,7 +79,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Five fill modes</p>
+						<p className="font-semibold text-foreground text-base">Five fill modes</p>
 						<p>
 							<strong>Cover</strong> tiles the entire surface. <strong>Flow</strong>{" "}
 							runs a single band around the circumference or equator.{" "}
@@ -89,7 +89,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Composes with everything</p>
+						<p className="font-semibold text-foreground text-base">Composes with everything</p>
 						<p>
 							Because characters are real DOM, <code className="text-xs font-mono">font-variation-settings</code>,
 							CSS animations, hover states, and other Liiift tools all work
@@ -102,8 +102,8 @@ export default function Home() {
 
 			{/* 3D file best practices */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
-				<h2 className="text-xs uppercase tracking-widest opacity-50">Custom meshes</h2>
-				<p className="text-sm opacity-60 leading-relaxed max-w-lg">
+				<h2 className="text-xs uppercase tracking-[0.18em] font-medium text-muted">Custom meshes</h2>
+				<p className="text-sm text-muted leading-relaxed max-w-lg">
 					Drop any <code className="text-xs font-mono">.glb</code>,{" "}
 					<code className="text-xs font-mono">.gltf</code>, or{" "}
 					<code className="text-xs font-mono">.obj</code> file onto the demo above.
@@ -111,9 +111,9 @@ export default function Home() {
 					<code className="text-xs font-mono">MeshSurfaceSampler</code>, orients each
 					character along the local normal, then auto-scales to fit the scene radius.
 				</p>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm leading-relaxed opacity-70">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm leading-relaxed text-muted">
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Prefer GLB over OBJ</p>
+						<p className="font-semibold text-foreground text-base">Prefer GLB over OBJ</p>
 						<p>
 							GLB is a self-contained binary bundle — no separate{" "}
 							<code className="text-xs font-mono">.mtl</code> or texture files.
@@ -123,7 +123,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">One mesh, merged geometry</p>
+						<p className="font-semibold text-foreground text-base">One mesh, merged geometry</p>
 						<p>
 							wrapType picks the first <code className="text-xs font-mono">Mesh</code> it
 							finds in the scene graph. For multi-part models, merge all objects into
@@ -132,7 +132,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Keep polygon count reasonable</p>
+						<p className="font-semibold text-foreground text-base">Keep polygon count reasonable</p>
 						<p>
 							5,000–50,000 triangles is plenty. Higher counts do not improve text
 							placement quality — <code className="text-xs font-mono">MeshSurfaceSampler</code>{" "}
@@ -141,7 +141,7 @@ export default function Home() {
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<p className="font-semibold opacity-100 text-base">Scale and coordinate system</p>
+						<p className="font-semibold text-foreground text-base">Scale and coordinate system</p>
 						<p>
 							GLTF and OBJ both use Y-up, right-handed axes. wrapType auto-fits the
 							bounding box to its <code className="text-xs font-mono">radius</code> option,
@@ -156,13 +156,13 @@ export default function Home() {
 			{/* Usage */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
 				<div className="flex items-baseline gap-4">
-					<h2 className="text-xs uppercase tracking-widest opacity-50">Usage</h2>
-					<p className="text-xs opacity-50 tracking-wide">TypeScript + React · Vanilla JS</p>
+					<h2 className="text-xs uppercase tracking-[0.18em] font-medium text-muted">Usage</h2>
+					<p className="text-xs text-muted tracking-wide">TypeScript + React · Vanilla JS</p>
 				</div>
 				<div className="flex flex-col gap-8 text-sm">
 
 					<div className="flex flex-col gap-3">
-						<p className="opacity-50">React component</p>
+						<p className="text-muted">React component</p>
 						<CodeBlock code={`import { WrapTypeScene } from '@liiift-studio/wraptype'
 
 <WrapTypeScene
@@ -177,7 +177,7 @@ export default function Home() {
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<p className="opacity-50">React hook</p>
+						<p className="text-muted">React hook</p>
 						<CodeBlock code={`import { useWrapType } from '@liiift-studio/wraptype'
 
 const { ref } = useWrapType({
@@ -190,7 +190,7 @@ const { ref } = useWrapType({
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<p className="opacity-50">Vanilla JS</p>
+						<p className="text-muted">Vanilla JS</p>
 						<CodeBlock code={`import { getCharPositions, createWrapScene } from '@liiift-studio/wraptype'
 
 const container = document.getElementById('scene')
@@ -206,7 +206,7 @@ scene.destroy()`} />
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<p className="opacity-50">Custom mesh (Vanilla JS)</p>
+						<p className="text-muted">Custom mesh (Vanilla JS)</p>
 						<CodeBlock code={`import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { Mesh } from 'three'
 import { getCharPositionsFromMesh, createWrapScene } from '@liiift-studio/wraptype'
@@ -231,16 +231,16 @@ loader.load('/model.glb', (gltf) => {
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<p className="opacity-50">Options</p>
+						<p className="text-muted">Options</p>
 						<table className="w-full text-xs">
 							<thead>
-								<tr className="opacity-50 text-left">
+								<tr className="text-subtle text-left">
 									<th className="pb-2 pr-6 font-normal">Option</th>
 									<th className="pb-2 pr-6 font-normal">Default</th>
 									<th className="pb-2 font-normal">Description</th>
 								</tr>
 							</thead>
-							<tbody className="opacity-70">
+							<tbody className="text-muted">
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">text</td><td className="py-2 pr-6">—</td><td className="py-2">The string to distribute across the surface. Repeats to fill.</td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">shape</td><td className="py-2 pr-6">&apos;sphere&apos;</td><td className="py-2"><code className="font-mono">&apos;sphere&apos;</code> · <code className="font-mono">&apos;cylinder&apos;</code> · <code className="font-mono">&apos;torus&apos;</code> · <code className="font-mono">&apos;plane&apos;</code> · <code className="font-mono">&apos;stool&apos;</code> · <code className="font-mono">&apos;flag&apos;</code></td></tr>
 								<tr className="border-t border-white/10 hover:bg-white/5 transition-colors"><td className="py-2 pr-6 font-mono">mode</td><td className="py-2 pr-6">&apos;surface&apos;</td><td className="py-2"><code className="font-mono">&apos;surface&apos;</code> — characters sit on the geometry · <code className="font-mono">&apos;silhouette&apos;</code> — characters follow the outline contour</td></tr>
