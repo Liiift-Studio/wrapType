@@ -38,7 +38,7 @@ export default function Home() {
 					<span>Three.js CSS3DRenderer</span><span>·</span>
 					<span>React + Vanilla JS</span>
 				</div>
-				<p className="text-base text-muted leading-relaxed max-w-lg">
+				<p className="text-base leading-relaxed max-w-lg">
 					CSS transforms can fake 3D. wrapType does it properly — distributing
 					real DOM text elements across the surface of a sphere, cylinder, torus,
 					flat plane, waving flag, or stool using Three.js&rsquo;s CSS3DRenderer.
@@ -58,7 +58,7 @@ export default function Home() {
 			{/* How it works */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
 				<h2 className="text-xs uppercase tracking-[0.18em] font-medium text-muted">How it works</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-12 text-sm leading-relaxed text-muted">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-12 text-sm leading-relaxed">
 					<div className="flex flex-col gap-3">
 						<p className="font-semibold text-foreground text-base">Real DOM on every surface</p>
 						<p>
@@ -111,7 +111,7 @@ export default function Home() {
 					<code className="text-xs font-mono">MeshSurfaceSampler</code>, orients each
 					character along the local normal, then auto-scales to fit the scene radius.
 				</p>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm leading-relaxed text-muted">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm leading-relaxed">
 					<div className="flex flex-col gap-3">
 						<p className="font-semibold text-foreground text-base">Prefer GLB over OBJ</p>
 						<p>
