@@ -25,6 +25,7 @@
 		"build": "vite build",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit",
+		"capture": "node scripts/capture.mjs",
 		"prepublishOnly": "npm run test && npm run build"
 	},
 	"peerDependencies": {

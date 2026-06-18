@@ -1,10 +1,16 @@
 # wrapType
 
-[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fwraptype.svg)](https://www.npmjs.com/package/@liiift-studio/wraptype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
+[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fwraptype.svg)](https://www.npmjs.com/package/@liiift-studio/wraptype) [![npm downloads](https://img.shields.io/npm/dm/%40liiift-studio%2Fwraptype.svg)](https://www.npmjs.com/package/@liiift-studio/wraptype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
 
-Real DOM text on any 3D surface — sphere, cylinder, torus, plane, or a custom mesh.
+Real DOM text on any 3D surface — sphere, cylinder, torus, plane, waving flag, stool, or a custom mesh.
 
 wrapType uses Three.js's CSS3DRenderer to distribute HTML text elements across the geometry of a 3D surface. Each character is a real DOM element oriented along the surface normal, which means variable fonts, CSS animations, hover states, and every other Liiift tool compose naturally — no canvas, no textures.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Liiift-Studio/wrapType/main/assets/hero.gif?v=1" alt="The word TYPOGRAPHY rendered as real HTML spans wrapped around a slowly rotating 3D sphere" width="640">
+</p>
+
+> Try it live and drop in your own `.glb` / `.gltf` / `.obj` mesh at **[wraptype.com](https://wraptype.com)**.
 
 ## Install
 
@@ -12,13 +18,31 @@ wrapType uses Three.js's CSS3DRenderer to distribute HTML text elements across t
 npm install @liiift-studio/wraptype three
 ```
 
-Three.js is a required peer dependency. React and React DOM are optional.
+Only **`three`** is required. The remaining peers are **optional** — install the ones you use:
+
+| Peer dependency | Needed for |
+|---|---|
+| `three` (required) | Core geometry + CSS3DRenderer |
+| `react`, `react-dom` | The `WrapTypeScene` component / `useWrapType` hook |
+| `@react-three/fiber`, `troika-three-text` | The GPU/SDF renderer at `@liiift-studio/wraptype/r3f` |
+
+```bash
+# React + DOM renderer (most common):
+npm install @liiift-studio/wraptype three react react-dom
+
+# R3F / WebGL renderer:
+npm install @liiift-studio/wraptype three @react-three/fiber troika-three-text
+```
+
+Vanilla JS users need only `three`.
 
 ## React
 
 ### Component
 
 ```tsx
+'use client' // Next.js App Router: WrapTypeScene renders in the browser only.
+
 import { WrapTypeScene } from '@liiift-studio/wraptype'
 
 <WrapTypeScene
@@ -31,6 +55,13 @@ import { WrapTypeScene } from '@liiift-studio/wraptype'
   style={{ width: '100%', height: '500px' }}
 />
 ```
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Liiift-Studio/wrapType/main/assets/shape-sphere.png?v=1" alt="The word TYPOGRAPHY wrapped around a sphere in latitude bands" width="380">
+  <img src="https://raw.githubusercontent.com/Liiift-Studio/wrapType/main/assets/shape-cylinder.png?v=1" alt="The word WRAPTYPE arced around the curved side of a cylinder" width="380">
+</p>
+
+<p align="center"><em>Every glyph above is a live <code>&lt;span&gt;</code> placed in 3D by CSS3DRenderer — selectable, styleable, animatable.</em></p>
 
 ### Hook
 
@@ -71,6 +102,57 @@ scene.destroy()
 const newPositions = getCharPositions({ text: 'New text', shape: 'sphere' })
 scene.rebuild(newPositions)
 ```
+
+## GPU / WebGL renderer (`/r3f`)
+
+The default renderer places real HTML in 3D (CSS3DRenderer). For text that needs to live **inside** a WebGL scene — receiving lights, shaders, and post-processing — import the SDF renderer from the `@liiift-studio/wraptype/r3f` entry point. It uses [`troika-three-text`](https://github.com/protectwise/troika) for GPU-antialiased glyphs curved onto the surface via troika's native `curveRadius`.
+
+Requires `@react-three/fiber` and `troika-three-text` as peers.
+
+### React Three Fiber component
+
+```tsx
+import { Canvas } from '@react-three/fiber'
+import { WrapTypeMesh } from '@liiift-studio/wraptype/r3f'
+
+<Canvas>
+  <WrapTypeMesh
+    shape="sphere"
+    radius={1}
+    text="Typography on any surface"
+    color="#ffffff"
+    fontSize={0.1}
+    autoRotate
+  />
+</Canvas>
+```
+
+`WrapTypeMesh` accepts `shape` (`'sphere' | 'cylinder' | 'torus' | 'plane'`), `radius`, `text`, `font`, `fontSize`, `letterSpacing`, `maxWidth`, `textAlign`, `color`, `curvatureTracking`, `curvatureTrackingFactor`, plus standard transform props (`position`, `rotation`, `scale`, `autoRotate`, `autoRotateSpeed`).
+
+### Imperative (no React)
+
+```ts
+import { createSDFText, updateSDFText } from '@liiift-studio/wraptype/r3f'
+
+const { group, dispose } = createSDFText('cylinder', {
+  text: 'Typography on any surface',
+  fontSize: 0.1,
+  color: '#ffffff',
+}, /* radius */ 1)
+
+scene.add(group)
+
+// Rebuild in place — keeps the same group reference:
+updateSDFText(group, 'torus', { text: 'New text', color: '#ffccaa' }, 1)
+
+// Free GPU resources when done:
+dispose()
+```
+
+| When to use | Renderer | Import |
+|---|---|---|
+| Variable fonts, CSS animation, selectable text, compose with other Liiift tools | **DOM (CSS3DRenderer)** | `@liiift-studio/wraptype` |
+| Text inside a WebGL scene — lighting, shaders, post-processing, large glyph counts | **SDF (WebGL)** | `@liiift-studio/wraptype/r3f` |
 
 ## API
 
@@ -160,6 +242,63 @@ OrbitControls are wired to a transparent overlay `<div>` so that pointer events 
 
 Drop any `.glb`, `.gltf`, or `.obj` file onto the demo. wrapType samples the surface with `MeshSurfaceSampler`, orients each character along the local normal, and auto-scales to fit the scene radius.
 
----
+In code, load any Three.js `Mesh` and feed it to `getCharPositionsFromMesh`, then render the result through the same scene API (or pass `positions` to `<WrapTypeScene>` in React):
 
-Current version: 1.0.4
+```ts
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { Mesh } from 'three'
+import { getCharPositionsFromMesh, createWrapScene } from '@liiift-studio/wraptype'
+
+new GLTFLoader().load('/model.glb', (gltf) => {
+  let mesh = null
+  gltf.scene.traverse((c) => { if (!mesh && c instanceof Mesh) mesh = c })
+  if (!mesh) return
+
+  const positions = getCharPositionsFromMesh(
+    mesh,
+    'Typography on any surface',
+    { radius: 300 },
+    250, // sample count
+  )
+  createWrapScene(document.getElementById('scene'), positions, { autoRotate: true })
+})
+```
+
+## Requirements
+
+| | |
+|---|---|
+| **Runtime** | Modern evergreen browsers (CSS3DRenderer needs `transform-style: preserve-3d` + `matrix3d`). |
+| **Peer deps** | `three >= 0.160`. Optional: `react`/`react-dom >= 17`, `@react-three/fiber >= 8`, `troika-three-text >= 0.47`. |
+| **Module formats** | ESM + CJS, with bundled TypeScript declarations. |
+| **SSR** | Browser-only. In Next.js App Router, mark the consuming component `'use client'`. |
+
+## Performance notes
+
+The DOM renderer creates **one HTML element per character instance**, so cost scales with the number of placed glyphs (which `fill`, `repeat`, and surface area all affect). It is built for striking display typography — wrap a headline, a logo, a hero — not for paragraphs of thousands of characters. For very high glyph counts, or to embed text inside a lit/shaded WebGL scene, use the [SDF renderer](#gpu--webgl-renderer-r3f) instead.
+
+## How it compares
+
+- **drei `<Text3D>` / extruded geometry** — renders solid 3D letterforms in WebGL. wrapType's DOM mode instead keeps glyphs as flat, real HTML on the surface, so they stay selectable, accessible, and styleable with CSS.
+- **Plain `troika-three-text`** — gives you GPU SDF text but not surface distribution. wrapType's `/r3f` renderer wraps troika with shape geometry and curvature; its DOM renderer needs no WebGL text at all.
+- **CSS-only 3D transforms** — can fake perspective on a block of text, but cannot distribute individual characters analytically across a curved surface with correct per-glyph normals. That is wrapType's core.
+
+## Contributing
+
+```bash
+git clone https://github.com/Liiift-Studio/wrapType.git
+cd wrapType
+npm install
+
+npm test        # vitest unit tests (happy-dom)
+npm run typecheck
+npm run build   # vite library build → dist/ (ESM + CJS + types)
+```
+
+The package source lives in `src/` (`core/` is framework-agnostic; `react/` holds the hook + component; `r3f/` is the SDF renderer). The landing page and interactive demo are a separate Next.js app in `site/`. README visuals are regenerated reproducibly with `npm run capture` (drives the running demo with Playwright; see `scripts/capture.mjs`).
+
+## License
+
+MIT © [Liiift Studio](https://liiift.studio)
+
+Part of [type-tools](https://github.com/Liiift-Studio/type-tools) — a suite of typographic tools for techniques that are impossible or impractical in CSS alone.
