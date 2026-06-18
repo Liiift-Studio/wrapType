@@ -188,8 +188,11 @@ export function createWrapScene(
 			// Outer wrapper: CSS3DRenderer writes the world-space matrix3d here.
 			// Keeping the two elements separate lets the curvature transform on
 			// the inner span compose naturally without interfering with Three.js.
+			// backface-visibility:hidden culls a glyph once it rotates past edge-on
+			// so the viewer never sees its mirror-reversed back face — without this,
+			// flat shapes like the flag read backwards through half of any rotation.
 			const wrapper = document.createElement('div')
-			wrapper.style.cssText = 'will-change:transform;line-height:1;'
+			wrapper.style.cssText = 'will-change:transform;line-height:1;backface-visibility:hidden;-webkit-backface-visibility:hidden;'
 			wrapper.appendChild(el)
 
 			const obj = new CSS3DObject(wrapper)

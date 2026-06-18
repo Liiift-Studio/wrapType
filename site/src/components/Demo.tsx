@@ -124,7 +124,7 @@ function fromPx(px: number, unit: SizeUnit): number {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_TEXT  = "TYPE"
-const DEFAULT_SHAPE = "flag"  as WrapTypeShape
+const DEFAULT_SHAPE = "sphere" as WrapTypeShape
 const DEFAULT_FILL  = "cover" as WrapTypeFill
 /** Font family reference via the next/font CSS variable set in layout.tsx. */
 const FONT_FAMILY   = "var(--font-inter), sans-serif"
