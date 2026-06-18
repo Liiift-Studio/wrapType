@@ -13,15 +13,41 @@ import { isAnimatedShape, getCharPositionsAt } from './geometry'
 // ─── Font measurement ─────────────────────────────────────────────────────────
 
 /**
+ * Resolve a CSS font-family value to one the Canvas 2D API can parse.
+ * Canvas `ctx.font` silently rejects CSS custom properties (e.g. the
+ * `var(--font-inter)` handle that next/font emits), leaving the context at its
+ * 10px sans-serif default — which yields tiny advance widths and collapses
+ * justified layouts. We resolve the family through a hidden DOM probe (in the
+ * scene's own cascade, so scoped vars resolve correctly) so canvas gets the
+ * concrete family names. Plain family strings are returned untouched.
+ * @param fontFamily - the family value as passed by the caller
+ * @param contextEl - element whose cascade defines any custom properties
+ */
+function resolveFontFamily(fontFamily: string, contextEl?: HTMLElement): string {
+	if (typeof document === 'undefined' || !fontFamily.includes('var(')) return fontFamily
+
+	const probe = document.createElement('span')
+	probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none'
+	probe.style.fontFamily = fontFamily
+	const host = contextEl ?? document.body
+	host.appendChild(probe)
+	const resolved = getComputedStyle(probe).fontFamily
+	host.removeChild(probe)
+	return resolved || fontFamily
+}
+
+/**
  * Measure the advance width of each unique character in `text` using the Canvas
  * 2D API. Returns a Map used by the geometry engine for justified layout.
  * Falls back gracefully if canvas is unavailable (SSR).
+ * @param contextEl - scene element used to resolve CSS custom properties in `fontFamily`
  */
 function measureCharWidths(
 	text: string,
 	fontSize: number,
 	fontFamily: string,
 	fontWeight: string | number,
+	contextEl?: HTMLElement,
 ): Map<string, number> {
 	const map = new Map<string, number>()
 	if (typeof document === 'undefined') return map
@@ -30,7 +56,7 @@ function measureCharWidths(
 	const ctx     = canvas.getContext('2d')
 	if (!ctx) return map
 
-	ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+	ctx.font = `${fontWeight} ${fontSize}px ${resolveFontFamily(fontFamily, contextEl)}`
 
 	for (const char of text) {
 		if (!map.has(char)) {
@@ -105,6 +131,7 @@ export function createWrapScene(
 		opts.fontSize   ?? 14,
 		opts.fontFamily ?? 'sans-serif',
 		opts.fontWeight ?? 'normal',
+		container,
 	)
 	// Inject into opts so geometry functions can use them
 	opts = { ...opts, charWidthMap }
@@ -188,11 +215,8 @@ export function createWrapScene(
 			// Outer wrapper: CSS3DRenderer writes the world-space matrix3d here.
 			// Keeping the two elements separate lets the curvature transform on
 			// the inner span compose naturally without interfering with Three.js.
-			// backface-visibility:hidden culls a glyph once it rotates past edge-on
-			// so the viewer never sees its mirror-reversed back face — without this,
-			// flat shapes like the flag read backwards through half of any rotation.
 			const wrapper = document.createElement('div')
-			wrapper.style.cssText = 'will-change:transform;line-height:1;backface-visibility:hidden;-webkit-backface-visibility:hidden;'
+			wrapper.style.cssText = 'will-change:transform;line-height:1;'
 			wrapper.appendChild(el)
 
 			const obj = new CSS3DObject(wrapper)
