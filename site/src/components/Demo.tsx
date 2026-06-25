@@ -45,7 +45,7 @@ class SdfErrorBoundary extends Component<SdfErrorBoundaryProps, SdfErrorBoundary
 					<button
 						onClick={() => this.reset()}
 						title="Restart the WebGL canvas after an error"
-						className="text-xs px-4 py-2 rounded-full border border-white/20 hover:border-white/40 transition-colors"
+						className="text-xs px-4 py-2 rounded-full border border-foreground/20 hover:border-foreground/40 transition-colors"
 					>
 						Reload canvas
 					</button>
@@ -315,7 +315,7 @@ export default function Demo() {
 				role="tablist"
 				aria-label="Renderer mode"
 				className="flex w-full rounded-lg overflow-hidden text-xs"
-				style={{ border: "1px solid rgba(255,255,255,0.12)" }}
+				style={{ border: "1px solid color-mix(in oklch, var(--foreground) 12%, transparent)" }}
 			>
 				<button
 					role="tab"
@@ -326,8 +326,8 @@ export default function Demo() {
 					title="Switch to the DOM renderer — text wraps as real HTML spans using CSS3DRenderer"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
 					style={{
-						background: renderer === "dom" ? "rgba(255,255,255,0.08)" : "transparent",
-						borderRight: "1px solid rgba(255,255,255,0.12)",
+						background: renderer === "dom" ? "color-mix(in oklch, var(--foreground) 8%, transparent)" : "transparent",
+						borderRight: "1px solid color-mix(in oklch, var(--foreground) 12%, transparent)",
 					}}
 				>
 					<span className={`uppercase tracking-[0.18em] font-medium transition-colors ${renderer === "dom" ? "text-foreground" : "text-subtle"}`}>
@@ -346,7 +346,7 @@ export default function Demo() {
 					title="Switch to the SDF renderer — text is GPU-rendered inside a WebGL canvas using troika-three-text"
 					className="flex-1 flex flex-col items-center gap-1 px-4 py-3 transition-colors text-center"
 					style={{
-						background: renderer === "sdf" ? "rgba(255,255,255,0.08)" : "transparent",
+						background: renderer === "sdf" ? "color-mix(in oklch, var(--foreground) 8%, transparent)" : "transparent",
 					}}
 				>
 					<span className={`uppercase tracking-[0.18em] font-medium transition-colors ${renderer === "sdf" ? "text-foreground" : "text-subtle"}`}>
@@ -363,7 +363,7 @@ export default function Demo() {
 				<div role="tabpanel" id="renderer-panel" aria-labelledby="tab-dom">
 					{/* Scene — drag-drop target */}
 					<div
-						className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-white/40" : ""}`}
+						className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-foreground/40" : ""}`}
 						style={{ height: "500px", background: "rgba(0,0,0,0.4)" }}
 						onDragOver={handleDragOver}
 						onDragLeave={handleDragLeave}
@@ -399,7 +399,7 @@ export default function Demo() {
 
 						{isDragging && (
 							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.3)" }}>
-								<p className="text-white/80 text-sm tracking-widest uppercase">Drop to wrap</p>
+								<p className="text-foreground/80 text-sm tracking-widest uppercase">Drop to wrap</p>
 							</div>
 						)}
 						{meshLoading && (
@@ -409,7 +409,7 @@ export default function Demo() {
 								role="status"
 								aria-live="polite"
 							>
-								<p className="text-white/60 text-xs tracking-widest uppercase">Loading mesh…</p>
+								<p className="text-foreground/60 text-xs tracking-widest uppercase">Loading mesh…</p>
 							</div>
 						)}
 						{meshName && !isDragging && (
@@ -468,7 +468,7 @@ export default function Demo() {
 									<button key={s.value} onClick={() => setShape(s.value)}
 										aria-pressed={shape === s.value}
 										title={s.title}
-										className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										className={`px-3 py-1.5 rounded-full border transition-colors ${shape === s.value ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 										{s.label}
 									</button>
 								))}
@@ -483,7 +483,7 @@ export default function Demo() {
 									<button key={f.value} onClick={() => setFill(f.value)}
 										aria-pressed={fill === f.value}
 										title={f.title}
-										className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										className={`px-3 py-1.5 rounded-full border transition-colors ${fill === f.value ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 										{f.label}
 									</button>
 								))}
@@ -502,7 +502,7 @@ export default function Demo() {
 											aria-pressed={sizeUnit === u}
 											title={`Set font size unit to ${u}`}
 											className={`px-2 py-0.5 rounded text-xs transition-colors font-mono ${
-												sizeUnit === u ? "bg-white/15 text-foreground" : "text-subtle hover:text-muted"
+												sizeUnit === u ? "bg-foreground/15 text-foreground" : "text-subtle hover:text-muted"
 											}`}
 										>
 											{u}
@@ -530,7 +530,7 @@ export default function Demo() {
 							<button onClick={() => setAutoRot(r => !r)}
 								aria-pressed={autoRot}
 								title={autoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
-								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${autoRot ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 								{autoRot ? "Auto-rotating" : "Paused"}
 							</button>
 						</div>
@@ -541,7 +541,7 @@ export default function Demo() {
 							<button onClick={() => setRepeat(r => !r)}
 								aria-pressed={repeat}
 								title={repeat ? "Stop tiling — show the text string only once around the mesh" : "Tile the text string repeatedly to fill the entire surface"}
-								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${repeat ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 								{repeat ? "Tiling" : "Once"}
 							</button>
 						</div>
@@ -568,7 +568,7 @@ export default function Demo() {
 								aria-label="Text to wrap on the surface"
 								title="The text string to wrap around the 3D mesh surface"
 								placeholder={DEFAULT_TEXT}
-								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20"
+								className="w-full bg-foreground/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20"
 							/>
 						</div>
 
@@ -624,7 +624,7 @@ export default function Demo() {
 									<button key={s.value} onClick={() => setSdfShape(s.value)}
 										aria-pressed={sdfShape === s.value}
 										title={s.title}
-										className={`px-3 py-1.5 rounded-full border transition-colors ${sdfShape === s.value ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+										className={`px-3 py-1.5 rounded-full border transition-colors ${sdfShape === s.value ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 										{s.label}
 									</button>
 								))}
@@ -637,7 +637,7 @@ export default function Demo() {
 							<button onClick={() => setSdfAutoRot(r => !r)}
 								aria-pressed={sdfAutoRot}
 								title={sdfAutoRot ? "Pause automatic rotation of the 3D mesh" : "Resume automatic rotation of the 3D mesh"}
-								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfAutoRot ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfAutoRot ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 								{sdfAutoRot ? "Auto-rotating" : "Paused"}
 							</button>
 						</div>
@@ -648,7 +648,7 @@ export default function Demo() {
 							<button onClick={() => setSdfCurvatureTracking(v => !v)}
 								aria-pressed={sdfCurvatureTracking}
 								title={sdfCurvatureTracking ? "Disable curvature tracking — text will lay flat rather than conforming to the surface normal" : "Enable curvature tracking — text bends to follow the exact curvature of the mesh surface"}
-								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfCurvatureTracking ? "border-white/60 bg-white/10" : "border-white/20 hover:border-white/40"}`}>
+								className={`w-fit px-3 py-1.5 rounded-full border transition-colors ${sdfCurvatureTracking ? "border-foreground/60 bg-foreground/10" : "border-foreground/20 hover:border-foreground/40"}`}>
 								{sdfCurvatureTracking ? "On" : "Off"}
 							</button>
 						</div>
@@ -689,7 +689,7 @@ export default function Demo() {
 										onChange={e => setSdfColor(e.target.value)}
 										aria-label="SDF text color"
 										title="Choose the fill color for the GPU-rendered text"
-										className="w-11 h-11 rounded cursor-pointer bg-transparent border border-white/20 p-0.5"
+										className="w-11 h-11 rounded cursor-pointer bg-transparent border border-foreground/20 p-0.5"
 									/>
 								</label>
 								<span className="font-mono text-muted">{sdfColor}</span>
@@ -706,7 +706,7 @@ export default function Demo() {
 								aria-label="Text to wrap on the surface"
 								title="The text string to wrap around the 3D mesh surface"
 								placeholder={DEFAULT_TEXT}
-								className="w-full bg-white/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-white/20"
+								className="w-full bg-foreground/5 rounded px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-foreground/20"
 							/>
 						</div>
 
