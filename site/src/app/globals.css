@@ -3,11 +3,12 @@
 @import "./base.css";
 
 :root {
-	--background: oklch(0.17 0.0800 40);
-	--foreground: oklch(0.97 0.008 40);
-	--foreground-muted: oklch(0.78 0.025 40);
-	--foreground-subtle: oklch(0.66 0.020 40);
-	--foreground-faint: oklch(0.55 0.016 40); /* cooler tint for wrapType */
+	--background: oklch(0.320 0.1731 292);
+	--btn-bg: oklch(0.420 0.1302 292);
+	--foreground: oklch(0.970 0.0080 292);
+	--foreground-muted: oklch(0.800 0.0250 292);
+	--foreground-subtle: oklch(0.680 0.0200 292);
+	--foreground-faint: oklch(0.580 0.0160 292); /* cooler tint for wrapType */
 	--accent: rgba(160, 140, 255, 0.85);
 	--font-sans: var(--font-inter), sans-serif;
 }
