@@ -364,7 +364,7 @@ export default function Demo() {
 					{/* Scene — drag-drop target */}
 					<div
 						className={`rounded-xl overflow-hidden relative transition-all ${isDragging ? "ring-2 ring-foreground/40" : ""}`}
-						style={{ height: "500px", background: "color-mix(in oklch, var(--foreground) 40%, transparent)" }}
+						style={{ height: "500px", background: "var(--panel)" }}
 						onDragOver={handleDragOver}
 						onDragLeave={handleDragLeave}
 						onDrop={handleDrop}
@@ -398,14 +398,14 @@ export default function Demo() {
 						</div>
 
 						{isDragging && (
-							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "color-mix(in oklch, var(--foreground) 30%, transparent)" }}>
+							<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "var(--panel)" }}>
 								<p className="text-foreground/80 text-sm tracking-widest uppercase">Drop to wrap</p>
 							</div>
 						)}
 						{meshLoading && (
 							<div
 								className="absolute inset-0 flex items-center justify-center pointer-events-none"
-								style={{ background: "color-mix(in oklch, var(--foreground) 40%, transparent)" }}
+								style={{ background: "var(--panel)" }}
 								role="status"
 								aria-live="polite"
 							>
@@ -588,7 +588,7 @@ export default function Demo() {
 					{/* Canvas */}
 					<div
 						className="rounded-xl overflow-hidden"
-						style={{ height: "500px", background: "color-mix(in oklch, var(--foreground) 40%, transparent)" }}
+						style={{ height: "500px", background: "var(--panel)" }}
 					>
 						<SdfErrorBoundary rendererKey={renderer}>
 						<Suspense fallback={
