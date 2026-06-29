@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#32160d"/>
+  <rect width="64" height="64" rx="14" fill="#513b8d"/>
   <!-- Text lines that arc/curve — suggesting 3D surface wrapping -->
-  <path d="M 6 54 Q 32 46 58 54" stroke="#faf3f1" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <path d="M 6 39 Q 32 31 58 39" stroke="#faf3f1" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.75"/>
-  <path d="M 6 25 Q 32 17 58 25" stroke="#faf3f1" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.5"/>
-  <path d="M 10 12 Q 32 6 54 12" stroke="#faf3f1" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.3"/>
+  <path d="M 6 54 Q 32 46 58 54" stroke="#f5f4fa" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M 6 39 Q 32 31 58 39" stroke="#f5f4fa" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.75"/>
+  <path d="M 6 25 Q 32 17 58 25" stroke="#f5f4fa" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <path d="M 10 12 Q 32 6 54 12" stroke="#f5f4fa" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.3"/>
 </svg>
